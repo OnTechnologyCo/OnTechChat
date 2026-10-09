@@ -1,0 +1,1 @@
+Location sharing defaults off. The user selects allowed accounts. Turning sharing off cancels pending automatic requests. Mail passwords, Firebase server keys and encryption.key must not be shared.

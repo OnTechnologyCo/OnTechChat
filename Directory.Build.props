@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <BuildFlavor Condition="'$(BuildFlavor)' == ''">local</BuildFlavor>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory).build\obj\$(BuildFlavor)\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory).build\bin\$(BuildFlavor)\$(MSBuildProjectName)\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

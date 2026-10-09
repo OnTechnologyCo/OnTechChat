@@ -1,0 +1,14 @@
+.vs/
+.build/
+output/
+archive/
+tools/
+**/bin/
+**/obj/
+*.user
+*.suo
+*.keystore
+*.jks
+
+# 공식 build.ps1에서 재생성하는 설치기 페이로드
+/installer/payload.zip

@@ -1,0 +1,1 @@
+Version 1.8.0: one-time fresh-location automatic replies for user-approved accounts, Android foreground sharing service with persistent status/stop notification, per-device grant revocation, existing manual location request flow.

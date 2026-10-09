@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "652290170505",
+    "project_id": "ontech-chat",
+    "storage_bucket": "ontech-chat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:652290170505:android:ea5fbab6f8ef1ec16ff058",
+        "android_client_info": {
+          "package_name": "com.ontechdev.chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5fkUMTFrlzXXzoKTWFLmGrXsNnXuC7Dc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

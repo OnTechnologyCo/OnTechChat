@@ -1,0 +1,28 @@
+OnTechChat Server 1.15.27 (Windows x64)
+
+설치 / 업데이트
+1. output/OnTechChat-Server-Setup-v1.15.27-x64.exe를 설치 폴더 밖에서 실행합니다.
+2. 관리자 권한 요청을 승인합니다.
+3. Setup에는 공식 Android 1.8.4 APK가 포함됩니다.
+4. 업데이트는 기존 서버와 트레이를 자동 종료하고 파일을 교체합니다.
+5. 포함된 APK는 서버 데이터의 private\apk-releases에 자동 게시됩니다.
+6. Android 앱은 서버의 업데이트 확인 API에서 APK를 다운로드하고 package/version/size/SHA256/signing certificate를 검증한 뒤 OS 설치 화면을 엽니다.
+7. 기존 배포 APK가 더 높은 versionCode이면 downgrade하지 않으며 같은 versionCode의 다른 APK도 덮어쓰지 않습니다.
+8. APK 게시가 완료된 뒤 Windows 서버 서비스를 시작하고 현재 로그인 사용자의 트레이를 다시 실행합니다.
+9. 기존 설정·계정·대화·첨부파일은 업데이트 중 보존합니다.
+10. 서버는 Windows 부팅 시 자동 시작하고 트레이는 사용자 로그인 시 자동 시작합니다.
+11. 커맨드 창은 표시하지 않습니다.
+
+제거
+Windows 설정 > 앱 > OnTech Chat Server > 제거 또는 시작 메뉴 > 프로그램 제거.
+예: 프로그램과 설정·계정·대화·첨부파일까지 모두 삭제합니다.
+아니요: 프로그램을 삭제하고 ProgramData의 데이터만 보존합니다.
+취소: 삭제하지 않습니다.
+프로세스·서비스·제품 방화벽 규칙·자동 시작 등록·바로가기·설치 폴더를 정리합니다.
+데이터 보존을 선택하면 apk-releases를 포함한 ProgramData 데이터도 보존됩니다.
+외부 Caddy 구성·다른 프로그램의 파일과 방화벽 규칙은 삭제 대상이 아닙니다.
+
+자동 검증: APK 서명/package/version/minSdk/zipalign, Setup payload APK/manifest, Go 회귀 검사, Windows 격리/프로세스 검사를 수행합니다.
+실제 운영 환경의 UAC 설치·업데이트·제거·재부팅 전체 흐름은 별도 확인이 필요합니다.
+
+1.15.14: 설치 PC의 Codex 실행 엔진을 공용 경로에 준비합니다. 설치 완료 후 서버용 Codex 로그인으로 AI 인증을 한 번 설정하세요. Windows 서비스 계정 변경이나 Windows 암호 입력은 필요 없습니다. 개인 Codex 인증은 복사하지 않으며 업데이트 후 서버 인증을 유지합니다. 상세 절차: docs/server/AI-CLI-AND-CHAT.md.

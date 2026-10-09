@@ -1,0 +1,7 @@
+<Project>
+  <Target Name="RequireCanonicalOnTechBuild" BeforeTargets="Restore;PrepareForBuild">
+    <Error Condition="'$(OnTechCanonicalBuild)' != 'true'" Text="OnTechChat: use the root build.ps1. Do not build copied or archived projects." />
+    <Error Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').Contains('\archive\'))" Text="Archived projects must never be built." />
+    <Error Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').Contains('\releases\'))" Text="Version-specific source copies are prohibited." />
+  </Target>
+</Project>
