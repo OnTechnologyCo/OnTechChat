@@ -55,7 +55,7 @@ internal sealed class ChatWebClient(MainActivity owner) : WebViewClient
         if(request?.Method=="POST"&&System.Text.RegularExpressions.Regex.IsMatch(uri.AbsolutePath,@"^/api/rooms/[a-zA-Z0-9_-]{8,100}/read\z"))owner.RunOnUiThread(owner.QueueNotificationCheck);
         if (uri.AbsolutePath == "/api/login")
         {
-            owner.Notice("저장된 로그인으로 다시 연결하고 있습니다. 메뉴에서 새로고침을 누르세요.");
+            owner.RequestSessionRecovery(view);
             return Denied();
         }
         if (uri.AbsolutePath == "/api/logout" && request?.Method == "POST")
@@ -71,7 +71,13 @@ internal sealed class ChatWebClient(MainActivity owner) : WebViewClient
     public override void OnReceivedError(WebView? view, IWebResourceRequest? request, WebResourceError? error)
     { if (request?.IsForMainFrame == true) { owner.ReconnectWebPending = true; owner.UpdatePageFailed(); owner.Notice($"웹 화면 접속 실패 · WebView 코드 {error?.ErrorCode}. 서버 주소·HTTPS 포트를 확인하고 메뉴에서 새로고침하세요."); } }
     public override void OnReceivedHttpError(WebView? view, IWebResourceRequest? request, WebResourceResponse? response)
-    { if(request?.IsForMainFrame==true){owner.ReconnectWebPending = true; owner.UpdatePageFailed();owner.Notice($"웹 화면 HTTP {response?.StatusCode} · 서버 외부 주소, 프록시 Host 설정과 서비스 실행 상태를 확인하세요.");} }
+    {
+        if (view != owner.Web) return;
+        if (owner.ServerOrigin is { } origin &&
+            SessionRecovery.NeedsWebRecovery(origin, request?.Url?.ToString(), request?.Method, response?.StatusCode))
+            owner.RequestSessionRecovery(view);
+        if(request?.IsForMainFrame==true){owner.ReconnectWebPending = true; owner.UpdatePageFailed();owner.Notice($"웹 화면 HTTP {response?.StatusCode} · 서버 외부 주소, 프록시 Host 설정과 서비스 실행 상태를 확인하세요.");}
+    }
     public override void OnPageStarted(WebView? view, string? url, Bitmap? favicon)
     { owner.UpdatePageStarted(); }
     public override void OnPageFinished(WebView? view, string? url)

@@ -24,7 +24,7 @@ public sealed class ChatApi : IDisposable
         http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
         http.BaseAddress = Origin; http.Timeout = TimeSpan.FromSeconds(12);
         http.DefaultRequestHeaders.Add("X-OnTech-Request", "1");
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("OnTechChat-Android/1.7.0");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("OnTechChat-Android/1.8.7");
         if (!string.IsNullOrEmpty(token)) http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
     public async Task<JsonElement> JsonAsync(string path, HttpMethod method, object? payload = null, CancellationToken ct = default)

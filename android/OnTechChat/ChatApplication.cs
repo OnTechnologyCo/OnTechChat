@@ -11,8 +11,10 @@ public sealed class ChatApplication : Application
     public override void OnCreate()
     {
         base.OnCreate();
-        FirebaseApp.InitializeApp(this);
-        PushService.CreateChannel(this);
+        try { FirebaseApp.InitializeApp(this); }
+        catch (Exception error) { StartupDiagnostics.Record(this, "Firebase.Initialize", error); }
+        try { PushService.CreateChannel(this); }
+        catch (Exception error) { StartupDiagnostics.Record(this, "Notifications.CreateChannel", error); }
         try
         {
             var folder = Path.Combine(CacheDir!.AbsolutePath, "chat-downloads");

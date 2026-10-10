@@ -35,7 +35,7 @@ public static class PushCoordinator
             try{await NotificationCenter.LoadPreferencesAsync(session,state.DeviceId);}catch{/* 미리보기는 확인되기 전 숨김 */}
             SetStatus(enabled ? "기기 등록 완료 · 서버 FCM 켜짐" : "기기 등록 완료 · 서버 FCM 꺼짐");
         }
-        catch (ApiException ex) { SetStatus(ex.Status == System.Net.HttpStatusCode.Unauthorized ? "세션 만료 · 다시 로그인하세요" : "기기 등록 실패 · 서버 설정/네트워크 확인"); }
+        catch (ApiException ex) { SetStatus(ex.Status == System.Net.HttpStatusCode.Unauthorized ? "알림 기기 등록 인증 확인 대기 · 채팅 로그인은 별도 확인" : "알림 기기 등록 실패 · 서버 설정/네트워크 확인"); }
         catch { SetStatus("FCM 연결 대기 · Google Play 서비스와 인터넷을 확인하세요"); }
         finally { Gate.Release(); }
     }
@@ -92,7 +92,8 @@ public sealed class PushService : FirebaseMessagingService
     public const string Channel = "ontech_messages";
     public override void OnNewToken(string token)
     {
-        SecureState.Update(s => { s.FcmToken = token; s.RegistrationKey = ""; });
+        try { SecureState.Update(s => { s.FcmToken = token; s.RegistrationKey = ""; }); }
+        catch (StateStorageException error) { StartupDiagnostics.Record(this, "FCM.TokenSave", error); PushCoordinator.SetStatus("알림 토큰 저장 대기 · 로그인 정보 유지"); }
         // 다음 포그라운드 복귀에서도 재등록하므로 프로세스 종료/네트워크 단절에 대비합니다.
         _ = PushCoordinator.RefreshAsync(true);
     }
