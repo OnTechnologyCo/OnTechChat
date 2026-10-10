@@ -41,6 +41,11 @@ function Publish-Release([string]$source,[string]$filename,[string]$pattern) {
 }
 function Build-Android([string]$rid,[string]$flavor) {
     $project="$root\android\OnTechChat\OnTechChat.csproj"
+    # APK의 Java 리소스와 JNI 등록 파일을 같은 빌드에서 다시 생성합니다.
+    foreach($generated in @("$root\.build\obj\$flavor\OnTechChat","$root\.build\bin\$flavor\OnTechChat")) {
+        if(Test-Path $generated) { Remove-Item -LiteralPath $generated -Recurse -Force }
+    }
+    Write-Output "CLEAN ANDROID PACKAGE BUILD: $rid"
     $arguments=@($project,'/restore','/t:SignAndroidPackage','/m:2','/v:minimal','/nologo',
         '/p:Configuration=Release',"/p:RuntimeIdentifier=$rid","/p:BuildFlavor=$flavor",
         '/p:OnTechCanonicalBuild=true',"/p:AndroidSdkDirectory=$($config.androidSdk)",
@@ -50,6 +55,15 @@ function Build-Android([string]$rid,[string]$flavor) {
     $apks=@(Get-ChildItem "$root\.build\bin\$flavor\OnTechChat" -Recurse -Filter '*-Signed.apk')
     if($apks.Count -ne 1) { throw "Expected one signed $rid APK; found $($apks.Count)" }
     $apk=$apks[0].FullName
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $bundle=[IO.Compression.ZipFile]::OpenRead($apk)
+    try {
+        $abi=if($rid -eq 'android-arm64'){'arm64-v8a'}else{'x86_64'}
+        foreach($required in @("AndroidManifest.xml","classes.dex","lib/$abi/libmonodroid.so","kotlin/kotlin.kotlin_builtins","client_analytics.proto","firebase-encoders.properties","META-INF/androidx.startup_startup-runtime.version")) {
+            if(!$bundle.GetEntry($required)) { throw "Incomplete Android APK payload: $required" }
+        }
+        Write-Output "APK PAYLOAD VERIFIED: $($bundle.Entries.Count) entries"
+    } finally { $bundle.Dispose() }
     $bt=Join-Path $config.androidSdk "build-tools\$($config.androidBuildTools)"
     Native "$($config.javaSdk)\bin\java.exe" @('-jar',"$bt\lib\apksigner.jar",'verify','--verbose','--print-certs',$apk) "android-$flavor-signature.log"
     Native "$bt\zipalign.exe" @('-c','-P','16','4',$apk) "android-$flavor-alignment.log"

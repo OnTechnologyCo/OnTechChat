@@ -22,7 +22,7 @@ public sealed partial class MainActivity : Activity
     private LinearLayout root = null!;
     private TextView status = null!, title = null!;
     private Handler ui = null!;
-    private bool resumed, destroyed, checking;
+    private bool resumed, destroyed, checking, startupFailed;
     private string pendingRoom = "";
     private string lastDiagnostic = "";
     private DateTime pausedAt;
@@ -32,17 +32,52 @@ public sealed partial class MainActivity : Activity
     {
         base.OnCreate(savedInstanceState);
         ui = new Handler(Looper.MainLooper!);
-        PushCoordinator.Changed += OnPushChanged;
-        AcceptNotification(Intent);
-        Shell();
-        RegisterBackNavigation();
-        var state = SecureState.Read();
-        if (state.Session is { Active: true })
-            Run(async () => { await ResumeSessionAsync(); });
-        else ShowLogin(state.Session is not null ? "세션이 만료되었습니다. 다시 로그인하세요." : "");
-        if (state.LocationSharingEnabled) LocationShareService.EnsureRunning(this);
-        _ = LocationShareService.SyncPendingRevocationAsync();
-        _ = PushCoordinator.RefreshAsync();
+        try
+        {
+
+            AcceptNotification(Intent);
+            Shell();
+            RegisterBackNavigation();
+            var state = SecureState.Read();
+            if (state.Session is { Active: true })
+                Run(async () => { await ResumeSessionAsync(); });
+            else ShowLogin(state.Session is not null ? "세션이 만료되었습니다. 다시 로그인하세요." : "");
+            if (state.LocationSharingEnabled) LocationShareService.EnsureRunning(this);
+            _ = LocationShareService.SyncPendingRevocationAsync();
+            _ = PushCoordinator.RefreshAsync();
+        }
+        catch (Exception error)
+        {
+            startupFailed = true; StartupDiagnostics.Record(this, "MainActivity.OnCreate", error);
+            ShowStartupFailure();
+        }
+    }
+    private void ShowStartupFailure()
+    {
+        root = new LinearLayout(this) { Orientation = Orientation.Vertical };
+        root.SetPadding(Dp(20), Dp(24), Dp(20), Dp(20));
+        title = new TextView(this) { Text = "앱 시작 오류", TextSize = 22 }; root.AddView(title);
+        status = new TextView(this) { Text = "로그인 정보는 유지했습니다. 아래 진단을 복사해 전달해 주세요.", TextSize = 15 }; root.AddView(status);
+        var text = StartupDiagnostics.Read(this);
+        var details = new TextView(this) { Text = text, TextSize = 12 };
+        details.SetTextIsSelectable(true); root.AddView(details);
+        var copy = new Button(this) { Text = "앱 실행 진단 복사" };
+        copy.Click += (_, _) => {
+            var clipboard = (Android.Content.ClipboardManager)GetSystemService(ClipboardService)!;
+            clipboard.PrimaryClip = ClipData.NewPlainText("OnTech 앱 실행 진단", text);
+        };
+        root.AddView(copy);
+        SetContentView(root);
+    }
+    private void ShowStartupDiagnostics()
+    {
+        var text = StartupDiagnostics.Read(this);
+        new AlertDialog.Builder(this)!.SetTitle("앱 실행 진단")!.SetMessage(text)!
+            .SetPositiveButton("닫기", (_, _) => { })!
+            .SetNeutralButton("복사", (_, _) => {
+                var clipboard = (Android.Content.ClipboardManager)GetSystemService(ClipboardService)!;
+                clipboard.PrimaryClip = ClipData.NewPlainText("OnTech 앱 실행 진단", text);
+            })!.Show();
     }
     private void Shell()
     {
@@ -133,7 +168,7 @@ public sealed partial class MainActivity : Activity
         copy.Click+=(_,_)=>{if(lastDiagnostic.Length==0){Notice("주소 연결만 확인을 먼저 누르세요.");return;}var clipboard=(Android.Content.ClipboardManager)GetSystemService(ClipboardService)!;clipboard.PrimaryClip=ClipData.NewPlainText("OnTech 연결 진단",lastDiagnostic);Notice("주소와 진단코드만 복사했습니다. 비밀번호·토큰은 포함하지 않습니다.");};form.AddView(copy);
         var browser=new Button(this){Text="입력 주소를 브라우저로 열기"};
         browser.Click+=(_,_)=>Run(()=>{var origin=UrlPolicy.Origin(address.Text??"");StartActivity(new Intent(Intent.ActionView,Android.Net.Uri.Parse(origin.AbsoluteUri)));return TTask.CompletedTask;});form.AddView(browser);
-        var foot = new TextView(this) { Text = "앱 1.8.4 · Firebase ontech-chat\nHTTP·인증서 오류 우회는 지원하지 않습니다.\n메일 비밀번호와 Firebase 서버 비공개 키는 앱에 저장하지 않습니다.", TextSize = 12 };
+        var foot = new TextView(this) { Text = "앱 1.8.7 · Firebase ontech-chat\nHTTP·인증서 오류 우회는 지원하지 않습니다.\n메일 비밀번호와 Firebase 서버 비공개 키는 앱에 저장하지 않습니다.", TextSize = 12 };
         foot.SetPadding(0, Dp(24), 0, 0); form.AddView(foot);
         root.AddView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     }
@@ -144,15 +179,15 @@ public sealed partial class MainActivity : Activity
         input.SetSingleLine(true); input.SetPadding(Dp(8), Dp(8), Dp(8), Dp(8));
         parent.AddView(input, new LinearLayout.LayoutParams(-1, Dp(56)) { BottomMargin = Dp(16) }); return input;
     }
-    private bool restoringSession;
+    private bool restoringSession, connectionWaiting;
     internal bool ReconnectWebPending;
     private async TTask ResumeSessionAsync()
     {
-        if (restoringSession || destroyed) return;
+        if (restoringSession || destroyed || startupFailed) return;
         var session = SecureState.Read().Session;
         if (session is not { Active: true }) { ShowLogin(); return; }
         restoringSession = true;
-        status.Text = "저장된 로그인으로 연결 중…";
+        connectionWaiting = true; status.Text = "저장된 로그인으로 연결 중…";
         try
         {
             using var api = new ChatApi(new Uri(session.Origin), session.Token);
@@ -176,39 +211,49 @@ public sealed partial class MainActivity : Activity
     {
         ClearBody(); ServerOrigin = UrlPolicy.Origin(session.Origin);
         title.Text = "온테크 채팅 · " + session.Username;
-        status.Text = "로그인 유지 중 · 서버 연결을 기다리고 있습니다.";
+        ShowConnectionFailure(error);
         lastDiagnostic = ConnectionDiagnostics.Failure(error, ServerOrigin).Text;
         var panel = new LinearLayout(this) { Orientation = Orientation.Vertical };
         panel.SetPadding(Dp(24), Dp(24), Dp(24), Dp(24));
-        panel.AddView(new TextView(this) { Text = "서버가 다시 시작되면 자동으로 연결합니다.\n저장된 로그인은 유지됩니다.", TextSize = 17 });
+        panel.AddView(new TextView(this) { Text = "서버가 다시 시작되면 자동으로 연결합니다.\n저장된 로그인은 유지됩니다.\n\n" + lastDiagnostic, TextSize = 15 });
         var retry = new Button(this) { Text = "지금 다시 연결" };
         retry.Click += (_, _) => Run(ResumeSessionAsync); panel.AddView(retry);
         root.AddView(panel, new LinearLayout.LayoutParams(-1, 0, 1));
     }
-    private TTask OpenSessionAsync(LoginSession session, bool showWeb = true)
+    private async TTask OpenSessionAsync(LoginSession session, bool showWeb = true)
     {
-        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         ServerOrigin = UrlPolicy.Origin(session.Origin);
-        CookieManager.Instance!.SetAcceptCookie(true);
-        const long age = 400L * 24 * 60 * 60;
-        string cookie = $"ontech_session={session.Token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age={age}";
-        CookieManager.Instance.SetCookie(ServerOrigin.AbsoluteUri, cookie, new Callback(value =>
+        var cookies = CookieManager.Instance!;
+        cookies.SetAcceptCookie(true);
+        string url = ServerOrigin.AbsoluteUri;
+        if (!WebSessionCookie.Matches(cookies.GetCookie(url), session.Token))
         {
-            if (value is not Java.Lang.Boolean accepted || !accepted.BooleanValue()) { ready.TrySetException(new IOException("웹 로그인 쿠키 저장에 실패했습니다. 앱을 다시 실행하고 Android System WebView 업데이트를 확인하세요."));return; }
-            try {
-                if (destroyed || SecureState.Read().Session?.Token != session.Token) { ready.TrySetCanceled(); return; }
-                CookieManager.Instance.Flush(); if (showWeb) { ReconnectWebPending = false; ShowWeb(session); } ready.TrySetResult();
+            var ready = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            const long age = 400L * 24 * 60 * 60;
+            string cookie = $"ontech_session={session.Token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age={age}";
+            // Java 콜백의 managed 객체 타입 대신 실제 저장된 쿠키를 확인합니다.
+            var callback = new Callback(_ => ready.TrySetResult(true));
+            cookies.SetCookie(url, cookie, callback);
+            try
+            {
+                await SessionRecovery.ConfirmCookieAsync(ready.Task, Lifetime.Token,
+                    stored: () => WebSessionCookie.Matches(cookies.GetCookie(url), session.Token));
             }
-            catch(Exception ex) { ready.TrySetException(ex); }
-        }));
-        return ready.Task;
+            finally { GC.KeepAlive(callback); }
+        }
+        if (destroyed || startupFailed || SecureState.Read().Session?.Token != session.Token) return;
+        cookies.Flush();
+        if (showWeb) { ReconnectWebPending = false; ShowWeb(session); }
+        connectionWaiting = false;
+        status.Text = "서버 연결됨 · 로그인 유지";
     }
+
     private void ShowWeb(LoginSession session)
     {
         if (destroyed) return;
         ClearBody(); ServerOrigin = UrlPolicy.Origin(session.Origin); title.Text = "온테크 채팅 · " + session.Username;
-        status.Text = PushCoordinator.Status;
-        Web = new WebView(this); Web.Settings.UserAgentString += " OnTechChatAndroid/1.8.4";
+        status.Text = "서버 연결됨 · 로그인 유지";
+        Web = new WebView(this); Web.Settings.UserAgentString += " OnTechChatAndroid/1.8.7";
         Web.Settings.JavaScriptEnabled = true; Web.Settings.DomStorageEnabled = true;
         Web.Settings.AllowFileAccess = false; Web.Settings.AllowContentAccess = true;
         Web.Settings.MixedContentMode = MixedContentHandling.NeverAllow;
@@ -232,8 +277,8 @@ public sealed partial class MainActivity : Activity
     private void ShowMenu()
     {
         bool loggedIn = SecureState.Read().Session is { Active: true };
-        var items = loggedIn ? new[] { "새로고침", "서버 설정 화면", "알림 상태·권한", "알림 미리보기·소리", "앱 업데이트", "FCM 기기 등록 다시 시도", "로그아웃·서버 변경", "GPS 이동 기록" }
-                             : new[] { "저장된 로그인으로 다시 연결", "알림 상태·권한", "로그아웃·서버 변경" };
+        var items = loggedIn ? new[] { "새로고침", "서버 설정 화면", "알림 상태·권한", "알림 미리보기·소리", "앱 업데이트", "FCM 기기 등록 다시 시도", "연결 진단", "앱 실행 진단", "로그아웃·서버 변경", "GPS 이동 기록" }
+                             : new[] { "저장된 로그인으로 다시 연결", "알림 상태·권한", "연결 진단", "앱 실행 진단", "로그아웃·서버 변경" };
         new AlertDialog.Builder(this)!.SetTitle("온테크 채팅")!.SetItems(items, (_, e) =>
         {
             switch (items[e.Which])
@@ -242,14 +287,35 @@ public sealed partial class MainActivity : Activity
                 case "내 위치 공유": ShowLocationHistorySettings(); break;
                 case "GPS 이동 기록": ShowLocationHistorySettings(); break;
                 case "서버 설정 화면": if (ServerOrigin is not null) Web?.LoadUrl(new Uri(ServerOrigin, "/?settings=1").AbsoluteUri); break;
+                case "연결 진단": new AlertDialog.Builder(this)!.SetTitle("서버 연결 진단")!.SetMessage(lastDiagnostic.Length == 0 ? "저장된 연결 오류가 없습니다." : lastDiagnostic)!.SetPositiveButton("닫기", (_, _) => { })!.Show(); break;
+                case "앱 실행 진단": ShowStartupDiagnostics(); break;
                 case "알림 상태·권한": ShowPushInfo(); break;
                 case "알림 미리보기·소리": ShowNotificationOptions(); break;
                 case "앱 업데이트": BeginUpdateCheck(); break;
-                case "FCM 기기 등록 다시 시도": Run(async () => { await PushCoordinator.RefreshAsync(true); status.Text = PushCoordinator.Status; }); break;
+                case "FCM 기기 등록 다시 시도": Run(async () => { await PushCoordinator.RefreshAsync(true); ShowPushInfo(); }); break;
                 case "저장된 로그인으로 다시 연결": Run(ResumeSessionAsync); break;
                 default: new AlertDialog.Builder(this)!.SetMessage("이 휴대전화의 서버 로그인과 푸시 기기 등록을 해제할까요?")!.SetNegativeButton("취소", (_, _) => { })!.SetPositiveButton("로그아웃", (_, _) => Run(() => LogoutAsync(true)))!.Show(); break;
             }
         })!.Show();
+    }
+    internal void RequestSessionRecovery(WebView? source)
+    {
+        RunOnUiThread(() =>
+        {
+            if (destroyed || source != Web || SecureState.Read().Session is not { Active: true }) return;
+            ReconnectWebPending = true; connectionWaiting = true;
+            status.Text = "저장된 로그인으로 웹 화면을 복구하고 있습니다…";
+            if (!resumed || checking || restoringSession) return;
+            ui.RemoveCallbacks(CheckSession); ui.Post(CheckSession);
+        });
+    }
+    private void ShowConnectionFailure(Exception error)
+    {
+        if (destroyed) return;
+        connectionWaiting = true;
+        var report = ConnectionDiagnostics.Failure(error, ServerOrigin);
+        lastDiagnostic = report.Text;
+        Notice("로그인 유지 중 · " + report.Code + " · 자동 재연결 대기 (메뉴 → 연결 진단)");
     }
     private void ShowPushInfo()
     {
@@ -276,7 +342,7 @@ public sealed partial class MainActivity : Activity
     private void AcceptNotification(Intent? intent) { string? room = intent?.GetStringExtra("room_id"); if (UrlPolicy.ValidID(room)) pendingRoom = room!; intent?.RemoveExtra("room_id"); }
     protected override void OnResume()
     {
-        base.OnResume(); resumed = true; _ = ResumeHistoryAsync(); Web?.OnResume(); Web?.ResumeTimers(); ResumeUpdateInstall(); QueueNotificationCheck(); QueueUpdateCheck();
+        base.OnResume(); resumed = true; if (startupFailed) return; _ = ResumeHistoryAsync(); Web?.OnResume(); Web?.ResumeTimers(); ResumeUpdateInstall(); QueueNotificationCheck(); QueueUpdateCheck();
         if (SecureState.Read().LocationSharingEnabled) LocationShareService.EnsureRunning(this);
         _ = LocationShareService.SyncPendingRevocationAsync();
         if (Web is not null && DateTime.UtcNow - pausedAt > TimeSpan.FromSeconds(60)) Web.Reload();
@@ -285,7 +351,7 @@ public sealed partial class MainActivity : Activity
     protected override void OnPause() { measuringLocation?.Cancel(); ui?.RemoveCallbacks(NotificationTick); ui?.RemoveCallbacks(QueueAutomaticUpdateCheck); ui?.RemoveCallbacks(CheckSession); resumed = false; pausedAt = DateTime.UtcNow; Web?.OnPause(); Web?.PauseTimers(); base.OnPause(); }
     private async void CheckSession()
     {
-        if (destroyed || !resumed || checking) return;
+        if (destroyed || startupFailed || !resumed || checking) return;
         checking = true;
         LoginSession? session = null;
         try
@@ -304,10 +370,9 @@ public sealed partial class MainActivity : Activity
         catch (ApiException ex) when (ex.SessionInvalid) {
             if (session is not null && SecureState.Read().Session?.Token == session.Token) await LogoutAsync(false);
         }
-        catch { Notice("로그인 유지 중 · 연결 복구를 재시도합니다."); }
-        finally { checking = false; if (!destroyed && resumed) ui.PostDelayed(CheckSession, Web is null || ReconnectWebPending ? 5000 : 30000); }
+        catch (Exception ex) { ShowConnectionFailure(ex); }
+        finally { checking = false; if (!destroyed && resumed) ui.PostDelayed(CheckSession, Web is null || ReconnectWebPending || connectionWaiting ? 5000 : 30000); }
     }
-    private void OnPushChanged() { if (!destroyed) RunOnUiThread(() => { if (Web is not null) status.Text = PushCoordinator.Status; }); }
     internal void Notice(string text) { if (!destroyed) RunOnUiThread(() => status.Text = text); }
     internal async void Run(Func<TTask> operation)
     {
@@ -322,7 +387,7 @@ public sealed partial class MainActivity : Activity
     protected override void OnDestroy()
     {
         UnregisterBackNavigation();
-        measuringLocation?.Cancel(); pendingInstall=null; destroyed = true; resumed = false; PushCoordinator.Changed -= OnPushChanged; Lifetime.Cancel(); FinishPicker(null);
+        measuringLocation?.Cancel(); pendingInstall=null; destroyed = true; resumed = false; Lifetime.Cancel(); FinishPicker(null);
         ui.RemoveCallbacksAndMessages(null); ClearBody(); Lifetime.Dispose(); base.OnDestroy();
     }
     private sealed class Insets : Java.Lang.Object, View.IOnApplyWindowInsetsListener

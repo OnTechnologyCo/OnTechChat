@@ -159,6 +159,120 @@ Check("canceled update persists across launch and allows explicit retry",()=>{
  if(gate.ShouldOffer(182,181,false,state.UpdateDeferredAccount,state.UpdateDeferredVersion)||!gate.ShouldOffer(182,181,true,state.UpdateDeferredAccount,state.UpdateDeferredVersion)||!gate.ShouldOffer(183,181,false,state.UpdateDeferredAccount,state.UpdateDeferredVersion))throw new Exception();
  gate.Finish();if(!gate.TryBegin("other-account",2,false,true)||!gate.ShouldOffer(182,181,false,state.UpdateDeferredAccount,state.UpdateDeferredVersion))throw new Exception("account boundary");
 });
+
+Check("web read authentication failure requests native recovery", () => {
+    foreach (var path in new[] { "/api/me", "/api/rooms", "/api/events" })
+        if (!SessionRecovery.NeedsWebRecovery(origin, new Uri(origin, path).AbsoluteUri, "GET", 401)) throw new Exception(path);
+});
+Check("web recovery excludes password errors and foreign requests", () => {
+    foreach (var request in new (string Url, string Method, int Status)[] {
+        (new Uri(origin, "/api/password").AbsoluteUri, "POST", 401),
+        ("https://other.example.com/api/me", "GET", 401),
+        (new Uri(origin, "/").AbsoluteUri, "GET", 401),
+        (new Uri(origin, "/api/me").AbsoluteUri, "GET", 403),
+        (new Uri(origin, "/api/me").AbsoluteUri, "GET", 503)
+    }) if (SessionRecovery.NeedsWebRecovery(origin, request.Url, request.Method, request.Status)) throw new Exception();
+});
+await SessionRecovery.ConfirmCookieAsync(Task.FromResult(true), CancellationToken.None);
+Check("cookie acceptance completes recovery", () => {});
+try { await SessionRecovery.ConfirmCookieAsync(Task.FromResult(false), CancellationToken.None); throw new Exception("cookie rejection accepted"); }
+catch (IOException) { Check("cookie rejection fails without waiting forever", () => {}); }
+var pendingCookie = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+bool openedAfterCookie = false;
+async Task OpenAfterCookie() { await SessionRecovery.ConfirmCookieAsync(pendingCookie.Task, CancellationToken.None, TimeSpan.FromMilliseconds(30)); openedAfterCookie = true; }
+try { await OpenAfterCookie(); throw new Exception("missing cookie callback never timed out"); }
+catch (IOException) { Check("missing cookie callback has bounded wait", () => {}); }
+pendingCookie.TrySetResult(true);
+await Task.Yield();
+Check("late cookie callback cannot reopen timed-out session", () => { if (openedAfterCookie) throw new Exception(); });
+using (var canceledCookie = new CancellationTokenSource())
+{
+    canceledCookie.Cancel();
+    try { await SessionRecovery.ConfirmCookieAsync(new TaskCompletionSource<bool>().Task, canceledCookie.Token); throw new Exception("destroyed activity continued"); }
+    catch (OperationCanceledException) { Check("activity cancellation releases cookie wait", () => {}); }
+}
+
+var persistenceSession = new LoginSession(origin.AbsoluteUri, "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_native", "member", "user12345678", 0);
+var loads = 0;
+LocalState? persisted = new() { Session = persistenceSession, Origin = origin.AbsoluteUri, DeviceId = "android-stable-device" };
+var stateStore = new LocalStateStore(
+    () => { if (++loads > 1) throw new IOException("temporary keystore failure"); return persisted; },
+    state => persisted = JsonSerializer.Deserialize<LocalState>(JsonSerializer.Serialize(state)));
+stateStore.Read();
+stateStore.Update(state => state.FcmToken = "fcm-refreshed");
+stateStore.Update(state => { state.RegistrationKey = "registration"; state.NotificationPrompted = true; });
+Check("background token and settings writes retain native login", () => {
+    var state = stateStore.Read();
+    if (state.Session != persistenceSession || state.DeviceId != "android-stable-device" || state.FcmToken != "fcm-refreshed" ||
+        state.RegistrationKey != "registration" || persisted?.Session != persistenceSession || loads != 1) throw new Exception();
+});
+Check("read snapshots cannot mutate the authoritative login", () => {
+    var snapshot = stateStore.Read(); snapshot.Session = null; snapshot.HistoryQueue.Clear();
+    if (stateStore.Read().Session != persistenceSession) throw new Exception();
+});
+Check("update result cannot mutate the authoritative login", () => {
+    var snapshot = stateStore.Update(state => state.NotificationPrompted = false); snapshot.Session = null;
+    if (stateStore.Read().Session != persistenceSession) throw new Exception();
+});
+var firstLoadFailing = true; var recoveryWrites = 0;
+var unavailableStore = new LocalStateStore(
+    () => firstLoadFailing ? throw new IOException("key unavailable") : new LocalState { Session = persistenceSession },
+    _ => recoveryWrites++);
+try { unavailableStore.Update(state => state.FcmToken = "background"); throw new Exception("failed read replaced login"); }
+catch (IOException) { Check("unreadable encrypted state never reaches background save", () => { if (recoveryWrites != 0) throw new Exception(); }); }
+firstLoadFailing = false;
+unavailableStore.Update(state => state.FcmToken = "background");
+Check("temporary first read failure can recover without state reset", () => {
+    if (unavailableStore.Read().Session != persistenceSession || recoveryWrites != 1) throw new Exception();
+});
+var saveFailing = false;
+var writeStore = new LocalStateStore(() => new LocalState { Session = persistenceSession, FcmToken = "original" },
+    _ => { if (saveFailing) throw new IOException("write unavailable"); });
+writeStore.Read(); saveFailing = true;
+try { writeStore.Update(state => { state.Session = null; state.FcmToken = "changed"; }); throw new Exception("failed write committed"); }
+catch (IOException) { Check("failed disk write preserves both cached login and settings", () => {
+    var state = writeStore.Read(); if (state.Session != persistenceSession || state.FcmToken != "original") throw new Exception();
+}); }
+try { writeStore.Update(state => { state.Session = null; throw new ArgumentException("cancel change"); }); }
+catch (ArgumentException) { Check("failed change cannot clear existing login", () => { if (writeStore.Read().Session != persistenceSession) throw new Exception(); }); }
+saveFailing = false;
+writeStore.Update(state => state.FcmToken = "new");
+Check("write recovery continues with original credentials", () => {
+    if (writeStore.Read().Session != persistenceSession || writeStore.Read().FcmToken != "new") throw new Exception();
+});
+Parallel.For(0, 40, _ => writeStore.Update(state => state.HistoryLastSynced++));
+Check("concurrent background updates retain login and every update", () => {
+    if (writeStore.Read().Session != persistenceSession || writeStore.Read().HistoryLastSynced != 40) throw new Exception();
+});
+writeStore.Update(state => state.Session = null);
+Check("explicit logout still clears the cached login", () => { if (writeStore.Read().Session != null) throw new Exception(); });
+var emptyStore = new LocalStateStore(() => null, _ => {});
+emptyStore.Update(state => state.Session = persistenceSession);
+Check("new installation can save its first login", () => { if (emptyStore.Read().Session != persistenceSession) throw new Exception(); });
+Check("state diagnostics omit underlying key or token data", () => {
+    var report = ConnectionDiagnostics.Failure(new StateStorageException("STATE_READ_FAILED", "로그인 정보 접근 대기", new IOException("private-key-token")), origin);
+    if (report.Code != "STATE_READ_FAILED" || report.Text.Contains("private-key-token")) throw new Exception();
+});
+Check("web cookie matches only the exact session", () => {
+    if (!WebSessionCookie.Matches("theme=dark; ontech_session=" + persistenceSession.Token + "; other=value", persistenceSession.Token)) throw new Exception();
+    foreach (var cookie in new[] { "", "ontech_session=wrong", "ontech_session_extra=" + persistenceSession.Token,
+        "ontech_session=" + persistenceSession.Token + "x", "ontech_session=" + persistenceSession.Token + "; ontech_session=old",
+        "ontech_session=old; ontech_session=" + persistenceSession.Token })
+        if (WebSessionCookie.Matches(cookie, persistenceSession.Token)) throw new Exception();
+});
+await SessionRecovery.ConfirmCookieAsync(Task.FromResult(false), CancellationToken.None, stored: () => true);
+Check("actual stored cookie controls success despite callback representation", () => {});
+try { await SessionRecovery.ConfirmCookieAsync(Task.FromResult(true), CancellationToken.None, stored: () => false); throw new Exception("missing actual cookie accepted"); }
+catch (SessionRecoveryException e) when (e.Code == "WEB_COOKIE_MISSING") { Check("successful callback cannot bypass actual cookie mismatch", () => {}); }
+await SessionRecovery.ConfirmCookieAsync(new TaskCompletionSource<bool>().Task, CancellationToken.None, TimeSpan.FromMilliseconds(20), () => true);
+Check("missing callback can use verified cookie without reconnect loop", () => {});
+using (var canceledVerification = new CancellationTokenSource())
+{
+    canceledVerification.Cancel();
+    try { await SessionRecovery.ConfirmCookieAsync(new TaskCompletionSource<bool>().Task, canceledVerification.Token, stored: () => true); throw new Exception("cancellation bypassed by cookie"); }
+    catch (OperationCanceledException) { Check("stored cookie cannot bypass activity cancellation", () => {}); }
+}
+
 Console.WriteLine($"TOTAL PASSED: {passed}");
 sealed class FakeHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {

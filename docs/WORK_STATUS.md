@@ -1,3 +1,39 @@
+# 완료 — 2026-10-10 앱1.8.7(187) / 서버Setup1.15.30 — 로그인 상태 보존
+- 사용자: 친구/대화는 정상이나 상단 로그인 상태 불일치, 설정 진입 시 native 로그인 화면 복귀. 휴대전화 오류 로그는 미확보. 제보의 단일 원인을 실기기에서 확정하지는 않음.
+- 확인한 코드 결함: SecureState 읽기/복호화/키 접근 오류를 빈 LocalState로 반환하고 배경 FCM 저장이 해당 상태로 덮어쓸 수 있었음. 빈 상태 반환을 제거하고 처음 성공한 상태 캐시, 복제본 조회, 저장 성공 후 상태 교체로 변경. IO 접근 실패를 파일 없음으로 처리하거나 기존 키 접근 실패 시 새 키로 덮어쓰기 금지.
+- 기존 Android Keystore AES-GCM 저장 형식/키 이름/앱 서명을 유지. 읽기·쓰기 실패로 로그인과 설정을 초기화하지 않음. 명시 로그아웃 및 서버 SESSION_INVALID 권한 해제 유지.
+- 서버 연결·로그인 유지 상단 표시와 FCM 알림 상태 분리. 쿠키 콜백의 managed 타입 판정 대신 실제 ontech_session 일치 확인, 이미 저장된 쿠키 재쓰기 방지. STATE_READ_FAILED/STATE_SAVE_FAILED/WEB_COOKIE_MISSING/WEB_COOKIE_TIMEOUT 구분. 민감정보 없이 오류 단계와 타입 기록.
+- 공식 All/Core 성공. Android 핵심130개/알림22개, 서버 120 PASS/5 opt-in SKIP/실패0. 새 저장 실패·배경 동시 저장·명시 로그아웃·쿠키 확인 검증17개 추가.
+- 깨끗한 APK 빌드 730 entries/libxamarin-app.so 1450320 bytes, 서명·정렬·package187/기존 인증서 확인. Setup x64 GUI/payload/version1.15.30 및 공식187 APK 포함 검증.
+- 운영 설치·서비스 변경·휴대전화 실행·PC 재부팅 검증 미수행. 기본 서버 healthz1.15.29 응답 확인. 현재 SDK 에뮬레이터 실행 파일/이미지 없음.
+- 임시 다운로드 https://volt-customers-stretch-task.trycloudflare.com. 공개 실제 GET200/파일명/크기/전체SHA256 모두 검증.
+- 소스 백업 .build/session-state-backup-20261010. 검증 .build/logs/release-1.15.30-verification.json.
+- output/OnTechChat-Server-Setup-v1.15.30-x64.exe / 39865344 bytes / SHA256 d8bb5df4f060867df240bd09923a75914183f0073c1bea955c1d9ad5a217a810.
+- output/OnTechChat-v1.8.7-arm64.apk / 28486666 bytes / SHA256 37e75678b2f6f681f7373efe10c04278e6a92132d97191a996e912a2e85ef46a.
+
+# 완료 — 2026-10-10 즉시 종료 보완 / 앱1.8.6(186)·서버1.15.29
+- 사용자 증상: 앱을 누르면 열리자마자 종료. 직접 기기 오류 로그는 미확보.
+- APK 패키지 누락: 1.8.4 730개 → 1.8.5 109개. 캐시 삭제·전체 빌드로 새 APK 730 개, libxamarin-app.so 1450320 bytes 및 필수 Kotlin/Firebase/AndroidX 리소스 확인. 공식 빌드에 캐시 재생성·필수 페이로드 검사 추가.
+- FirebaseInitProvider 자동 초기화 대신 기존 Application의 명시 초기화를 예외 보호. 알림 채널 생성 보호. Activity 시작 실패 시 로그인 데이터 유지 및 진단 화면/복사 제공. 진단에는 토큰/계정/예외 메시지를 기록하지 않음.
+- 기존 로그인 유지·자동 복구 유지. APK 기존 설치 위에 덮어 설치. 데이터 초기화/앱 삭제 필요 없음.
+- 공식 All/Core 완료. Android 핵심113개/알림22개, 서버 120 개 PASS/5 개 opt-in SKIP/실패0. APK 서명/정렬/package186/기존 인증서, Setup x64 GUI/payload/--version1.15.29 검증 통과.
+- output/OnTechChat-Server-Setup-v1.15.29-x64.exe / 39863296 bytes / SHA256 1f6a5195dcdd6c41193c7ffd2ea5f715f383fa839f08440d1b5729ccff650518.
+- output/OnTechChat-v1.8.6-arm64.apk / 28486666 bytes / SHA256 b6e766b08a0e9b573984bb5d01c4431173f32643586f9619adc3ac00ed94b28e.
+- 공개 다운로드 실제 GET HTTP200/파일명/크기/전체SHA256 검증. 임시 주소 https://bryant-walks-ranger-sao.trycloudflare.com.
+- 백업 .build/startup-fix-backup-20261010. 검증 .build/logs/release-1.15.29-verification.json.
+- 실제 휴대전화 실행·제보 재현·운영 설치 미수행. 현재 SDK에는 emulator 실행 파일/이미지가 없어 에뮬레이터 실행도 하지 않음. 패키지 누락은 확인했으나 제보 종료 원인 자체를 확정한 것은 아님.
+
+# 완료 — 2026-10-10 앱1.8.5(185) / 서버Setup1.15.28 로그인 복구
+- 웹 GET API 인증 실패와 로그인 시도에서 저장 세션으로 실제 복구. 이전 WebView 오류 콜백 무시. 연결 실패 동안5초 재시도.
+- 쿠키 저장8초 제한, 늦은 콜백/로그아웃/계정 전환 뒤 화면 재열기 차단. 연결 진단 메뉴 추가, GPS 안내 분리.
+- 공식 build.ps1: All/Core에서 Android 핵심113개/알림22개, APK 생성·서명·정렬·package185 확인. Server/Core 최종 성공. 서버 120 개 PASS/5 개 opt-in SKIP/실패0. Setup x64 GUI/payload21개/--version1.15.28 검증 통과.
+- 패키징의 SYSTEM Git 소유권 검사는 재시도 프로세스에만 GIT_CONFIG_COUNT/safe.directory를 설정하여 해결. 전역Git 설정·Windows 계정 변경 없음.
+- output/OnTechChat-Server-Setup-v1.15.28-x64.exe / 39350272 bytes / SHA256 e38047efc170d902e6e8110239ccc3d730fdbdf2c6b3a2d360dababf256a4eea.
+- output/OnTechChat-v1.8.5-arm64.apk / 27838614 bytes / SHA256 5afd95fb0253b6deba6c24e566f6407e28c4a7eee8750b702ced4c738bd54373.
+- 공개 APK/Setup 실제 GET 다운로드 HTTP200, 파일명/크기/전체SHA256 일치 확인. 현재 주소 https://bryant-walks-ranger-sao.trycloudflare.com. 임시 링크는 PC와 다운로드 작업 실행 동안 유효.
+- 소스 백업 .build/login-recovery-backup-20261010. 검증 기록 .build/logs/release-1.15.28-verification.json.
+- 실제 휴대전화 재현/PC재부팅/운영 설치 미수행. 기본 주소 /healthz는 기존서버1.15.27 정상 확인, 이번 앱과 호환.
+
 # 1.15.27 / Android 1.8.4 완료 — 로그인 유지
 - 2026-10-09: PC 재부팅/서버 재시작/앱 재실행/일시 연결 실패에도 로그인 유지. 직접 로그아웃 또는 비밀번호 변경·계정 사용 중지 등 명시적 권한 회수까지 서버 세션 영속 유지.
 - 기존 유효 세션만 이전. 만료·로그아웃·회수한 토큰은 복구하지 않음. 다른 기기 로그인 때문에 기존 기기를 자동 로그아웃시키지 않음.

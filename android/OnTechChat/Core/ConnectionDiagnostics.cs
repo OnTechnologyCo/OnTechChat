@@ -7,7 +7,7 @@ namespace OnTechChat;
 public sealed record ConnectionReport(bool Success, string Code, string Address, string Detail)
 {
     // 로그인 입력값·토큰·비밀번호·서버 원문 HTML을 보고서에 포함하지 않습니다.
-    public string Text => $"앱 1.7.0 · 진단 {Code}\n{(Address.Length > 0 ? "주소: " + Address + "\n" : "")}{Detail}";
+    public string Text => $"앱 1.8.7 · 진단 {Code}\n{(Address.Length > 0 ? "주소: " + Address + "\n" : "")}{Detail}";
 }
 public static class ConnectionDiagnostics
 {
@@ -28,6 +28,8 @@ public static class ConnectionDiagnostics
     {
         var code="UNEXPECTED";var detail="작업을 완료하지 못했습니다. 진단코드와 연결 주소를 확인해 주세요.";
         if (exception is ArgumentException) {code="ADDRESS_INVALID";detail=exception.Message;}
+        else if(exception is StateStorageException state) {code=state.Code;detail=state.Message;}
+        else if(exception is SessionRecoveryException recovery) {code=recovery.Code;detail=recovery.Message;}
         else if(exception is ApiException api)
         {
             code=string.IsNullOrEmpty(api.Code)?"HTTP_"+(int)api.Status:api.Code;
