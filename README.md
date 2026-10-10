@@ -1,4 +1,7 @@
 # OnTechChat — 단일 작업 경로
+
+**한국어** | [English](README.en.md)
+
 프로젝트 루트: D:\OnMakeSrc\OnTechChat
 다른 에이전트는 **AGENTS.md → docs/WORK_STATUS.md** 순서로 읽고 작업한다.
 
