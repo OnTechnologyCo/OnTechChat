@@ -4,7 +4,7 @@
     <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
     <OutputType>Exe</OutputType><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.ontechdev.chat</ApplicationId><ApplicationTitle>온테크 채팅</ApplicationTitle>
-    <ApplicationVersion>187</ApplicationVersion><ApplicationDisplayVersion>1.8.7</ApplicationDisplayVersion>
+    <ApplicationVersion>188</ApplicationVersion><ApplicationDisplayVersion>1.8.8</ApplicationDisplayVersion>
     <RuntimeIdentifier>android-arm64</RuntimeIdentifier><AndroidPackageFormats>apk</AndroidPackageFormats>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk><AndroidEnableFastDeployment>false</AndroidEnableFastDeployment>
     <RunAOTCompilation>false</RunAOTCompilation><PublishTrimmed>false</PublishTrimmed>

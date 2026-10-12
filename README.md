@@ -7,17 +7,17 @@
 
 | 용도 | 공식 경로 |
 |---|---|
-| Android 1.8.7 소스 | android/OnTechChat/ |
-| Windows 서버 1.15.30 소스 | server/ |
+| Android 1.8.8 소스 | android/OnTechChat/ |
+| Windows 서버 1.15.31 소스 | server/ |
 | 통합 설치기 / 트레이 | installer/ / tray/ |
 | 유일한 빌드 진입점 | build.ps1 |
-| 배포 APK | output/OnTechChat-v1.8.7-arm64.apk |
-| 서버 설치 파일 | output/OnTechChat-Server-Setup-v1.15.30-x64.exe |
+| 배포 APK | output/OnTechChat-v1.8.8-arm64.apk |
+| 서버 설치 파일 | output/OnTechChat-Server-Setup-v1.15.31-x64.exe |
 | 배포 파일 해시 | output/manifest.json / SHA256SUMS.txt |
 | 빌드 중간 파일·로그 | .build/ |
 | 이전 버전 보관 | archive/ (수정·빌드·실행 금지) |
 
-Server Setup 1.15.30은 공식 Android 1.8.7 APK를 내부 payload에 포함하며, 신규 설치/업데이트 시 서버 `DataDir\apk-releases`에 자동 게시한다. Android 앱은 기존 업데이트 API에서 해당 APK를 다운로드해 검증 후 OS 설치 화면을 사용한다.
+Server Setup 1.15.31은 공식 Android 1.8.8 APK를 내부 payload에 포함하며, 신규 설치/업데이트 시 서버 `DataDir\apk-releases`에 자동 게시한다. Android 앱은 기존 업데이트 API에서 해당 APK를 다운로드해 검증 후 OS 설치 화면을 사용한다.
 
 PowerShell에서 실행:
 - 전체 검증·빌드: .\build.ps1 -Target All

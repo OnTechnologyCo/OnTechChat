@@ -7,26 +7,31 @@ public sealed partial class MainActivity
 {
  private bool preparingHistory;
  private string historyConnectionError = "";
+ internal void OpenHistoryNotificationSettings()=>Run(()=>{LocationHistoryNotification.OpenSettings(this);return TTask.CompletedTask;});
  internal void ShowLocationHistorySettings()
  {
   var s=SecureState.Read();
   if(s.Session is not {Active:true}){Notice("로그인 후 사용할 수 있습니다.");return;}
-  var box=new LinearLayout(this){Orientation=Orientation.Vertical};box.SetPadding(Dp(20),Dp(8),Dp(20),0);
+  var scroll=new ScrollView(this);
+  var box=new LinearLayout(this){Orientation=Orientation.Vertical};box.SetPadding(Dp(20),Dp(8),Dp(20),Dp(16));scroll.AddView(box);
   var enabled=new CheckBox(this){Text="내 위치 조회 허용",Checked=s.LocationSharingEnabled};
   box.AddView(enabled);
-  box.AddView(new TextView(this){Text="켜면 1분 간격으로 위치를 기록하고 친구가 지도에서 이동 경로를 조회할 수 있습니다. 기록은 최근 48시간 보관합니다. 별도의 기록 시작 설정은 없습니다.\n\n새로 허용하면 모든 친구(이후 추가되는 친구 포함)에게 공유합니다. 기존 선택 공유는 자동으로 범위를 넓히지 않습니다.\n\nAndroid 기록 알림은 아래 알림 표시 설정에서 숨길 수 있습니다. 시스템의 실행 중인 앱 표시는 유지됩니다. 인터넷이 끊기면 기기에 암호화 보관하고 연결 후 전송합니다. 강제 종료·재부팅 후 앱을 열면 재개합니다."});
+  box.AddView(new TextView(this){Text=LocationHistoryNotification.DisplayStatus(this)+"\nGPS 이동 기록 항목의 알림 허용을 끄세요. 위치 조회 허용은 그대로 두면 됩니다."});
+  var alerts=new Button(this){Text="GPS 알림 숨기기 · 표시 설정"};box.AddView(alerts);
+  box.AddView(new TextView(this){Text="켜면 1분 간격으로 위치를 기록하고 친구가 지도에서 이동 경로를 조회할 수 있습니다. 기록은 최근 48시간 보관합니다. 별도의 기록 시작 설정은 없습니다.\n\n새로 허용하면 모든 친구(이후 추가되는 친구 포함)에게 공유합니다. 기존 선택 공유는 자동으로 범위를 넓히지 않습니다.\n\nGPS 알림은 위 버튼에서 한 번 끄면 됩니다. 채팅 알림은 별도로 유지됩니다. 시스템의 실행 중인 앱 표시는 유지됩니다. 인터넷이 끊기면 기기에 암호화 보관하고 연결 후 전송합니다. 강제 종료·재부팅 후 앱을 열면 재개합니다."});
   box.AddView(new TextView(this){Text="\n"+LocationHistoryService.Status+(historyConnectionError.Length>0?"\n"+historyConnectionError:"")+" · 미전송 "+s.HistoryQueue.Count+"개"+(s.HistoryDeletePending||s.HistoryRevokePending?"\n서버 중지/삭제 반영 대기":"")});
   var delete=new Button(this){Text="내 모든 이동 기록 삭제"};
   delete.Click+=(_,_)=>new AlertDialog.Builder(this)!.SetTitle("이동 기록 삭제")!.SetMessage("이 계정의 모든 기기 기록을 삭제하고 위치 조회 허용을 끕니다. 연결 전에는 서버 삭제가 대기됩니다. 복구할 수 없습니다.")!.SetNegativeButton("취소",(_,_)=>{})!.SetPositiveButton("삭제",(_,_)=>{LocationHistoryService.Pause(this,true);Run(async()=>{await LocationHistoryService.SyncAsync();Notice(LocationHistoryService.Status);});})!.Show();
   box.AddView(delete);
-  var alerts=new Button(this){Text="기록 알림 표시 설정"};alerts.Click+=(_,_)=>{LocationHistoryService.PrepareNotificationChannel(this);var intent=new Android.Content.Intent(Android.Provider.Settings.ActionChannelNotificationSettings);intent.PutExtra(Android.Provider.Settings.ExtraAppPackage,PackageName);intent.PutExtra(Android.Provider.Settings.ExtraChannelId,"ontech_location_history");StartActivity(intent);};box.AddView(alerts);
-  new AlertDialog.Builder(this)!.SetTitle("내 위치 조회 허용 · 이동경로")!.SetView(box)!.SetNegativeButton("닫기",(_,_)=>{})!
+  var dialog=new AlertDialog.Builder(this)!.SetTitle("내 위치 조회 허용 · 이동경로")!.SetView(scroll)!.SetNegativeButton("닫기",(_,_)=>{})!
    .SetPositiveButton("적용",(_,_)=>Run(async()=>{
     if(!enabled.Checked){LocationHistoryService.Pause(this);await LocationHistoryService.SyncAsync();Notice("위치 기록과 친구 조회를 중지했습니다.");return;}
     if(!HistoryPermissions())return;
     if(!SecureState.Read().LocationSharingEnabled){await PushCoordinator.RefreshAsync(true);await SaveLocationSharingAsync();}
     await EnableHistoryFromSharingAsync();
-   }))!.Show();
+   }))!.Create()!;
+  alerts.Click+=(_,_)=>{dialog.Dismiss();OpenHistoryNotificationSettings();};
+  dialog.Show();
  }
  private bool HistoryPermissions()
  {

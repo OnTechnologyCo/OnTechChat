@@ -9,13 +9,13 @@ namespace OnTechChat;
 [Service(Name="com.ontechdev.chat.LocationHistoryService",Exported=false,ForegroundServiceType=ForegroundService.TypeLocation)]
 public sealed class LocationHistoryService:Service
 {
- private const string Channel="ontech_location_history";
+ private const string Channel=LocationHistoryNotification.Channel;
  private const int NoticeID=4303;
  private static LocationHistoryService? instance;
  private static readonly SemaphoreSlim SyncGate=new(1,1);
  private CancellationTokenSource? lifetime;
  public static string Status {get;private set;}="기록 중지";
- public static void PrepareNotificationChannel(Context context){var manager=(NotificationManager)context.GetSystemService(NotificationService)!;var channel=new NotificationChannel(Channel,"GPS 이동 기록",NotificationImportance.Low){Description="1분 간격 위치 기록 알림. 숨겨도 기록은 계속됩니다.",LockscreenVisibility=NotificationVisibility.Private};channel.SetSound(null,null);channel.EnableVibration(false);channel.SetShowBadge(false);manager.CreateNotificationChannel(channel);}
+ public static void PrepareNotificationChannel(Context context)=>LocationHistoryNotification.Prepare(context);
  public override IBinder? OnBind(Intent? intent)=>null;
  public override void OnCreate(){base.OnCreate();instance=this;}
  public static void Start(Context context)
@@ -33,7 +33,9 @@ public sealed class LocationHistoryService:Service
    PrepareNotificationChannel(this);
    using var open=new Intent(this,typeof(MainActivity));var openPI=PendingIntent.GetActivity(this,4303,open,PendingIntentFlags.UpdateCurrent|PendingIntentFlags.Immutable);
    using var stop=new Intent(this,typeof(LocationHistoryService)).SetAction("stop");var stopPI=PendingIntent.GetService(this,4304,stop,PendingIntentFlags.UpdateCurrent|PendingIntentFlags.Immutable);
-   var builder=new Notification.Builder(this,Channel).SetSmallIcon(Resource.Drawable.ic_notification)!.SetContentTitle("GPS 이동 기록 중")!.SetContentText("1분 간격 · 48시간 보관 · 연결되면 서버에 전송")!.SetContentIntent(openPI)!.SetOngoing(true).SetOnlyAlertOnce(true).SetVisibility(NotificationVisibility.Private);
+   using var hide=LocationHistoryNotification.SettingsIntent(this);var hidePI=PendingIntent.GetActivity(this,4305,hide,PendingIntentFlags.UpdateCurrent|PendingIntentFlags.Immutable);
+   var builder=new Notification.Builder(this,Channel).SetSmallIcon(Resource.Drawable.ic_notification)!.SetContentTitle("GPS 이동 기록 중")!.SetContentText("1분 간격 · 48시간 보관 · 알림만 숨길 수 있습니다.")!.SetContentIntent(openPI)!.SetOngoing(true).SetOnlyAlertOnce(true).SetShowWhen(false).SetLocalOnly(true).SetVisibility(NotificationVisibility.Private);
+   builder.AddAction(new Notification.Action.Builder(null,"GPS 알림 숨기기",hidePI).Build());
    builder.AddAction(new Notification.Action.Builder(null,"기록 중지",stopPI).Build());StartForeground(NoticeID,builder.Build());
    lifetime=new();_ = RecordLoop(lifetime.Token);
   }catch{Status="위치 권한/서비스 실행 제한 · 다시 시작하세요.";SecureState.Update(s=>s.HistoryEnabled=false);StopSelf();}

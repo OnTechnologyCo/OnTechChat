@@ -19,7 +19,9 @@ public sealed partial class MainActivity
   var note=new TextView(this){TextSize=13,Text="켜면 보낸 사람과 일반 메시지 일부가 FCM 알림에 표시됩니다. 인증번호·위치 좌표는 숨깁니다. 이 휴대전화에만 적용됩니다."};
   var save=new Button(this){Text="미리보기 설정 저장",Enabled=false};var sound=new Button(this){Text="알림 소리·진동 변경"};
   var clear=new Button(this){Text="읽은 알림 지금 정리"};var test=new Button(this){Text="선택한 소리로 로컬 알림 테스트"};
-  foreach(var v in new Android.Views.View[]{preview,note,save,sound,clear,test,info})form.AddView(v);
+  var gps=new Button(this){Text="GPS 알림 숨기기"};gps.Click+=(_,_)=>OpenHistoryNotificationSettings();
+  var gpsNote=new TextView(this){TextSize=13,Text="GPS 이동 기록 항목만 끄면 기록과 채팅 알림은 유지됩니다."};
+  foreach(var v in new Android.Views.View[]{gps,gpsNote,preview,note,save,sound,clear,test,info})form.AddView(v);
   var dialog=new AlertDialog.Builder(this)!.SetTitle("알림 미리보기 · 소리")!.SetView(scroll)!.SetNegativeButton("닫기",(_,_)=>{})!.Create()!;dialog.Show();
   sound.Click+=(_,_)=>Run(()=>{NotificationCenter.OpenSoundSettings(this);return System.Threading.Tasks.Task.CompletedTask;});
   test.Click+=(_,_)=>{AskNotificationPermission(false);PushService.Show(this,"","","",true);info.Text="휴대전화 로컬 알림입니다. 서버 FCM 수신 시험은 아닙니다.";};

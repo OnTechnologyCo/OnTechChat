@@ -1,3 +1,12 @@
+# 완료 — 2026-10-13 앱1.8.8(188) / 서버Setup1.15.31 — GPS 알림 숨기기
+- GPS 기록 알림·앱 메뉴·알림 설정에 GPS 알림 숨기기 추가. 이동 기록 설정 상단에 현재 표시 상태/안내를 제공하고 작은 화면에서 스크롤 지원.
+- 기존 GPS 전용 채널 ontech_location_history 유지. 사용자가 Android 설정에서 해당 알림만 한 번 끄면 됨. 알림을 숨기기 위해 위치 기록/공유를 중지하거나 채팅 알림을 끄지 않음. 시스템 실행 중인 앱 표시는 별도.
+- 공식 All/Core 성공: Android130개/알림22개/서버120 PASS·5 opt-in SKIP. APK730개 항목, package188/기존 서명 유지/정렬 확인. Setup x64 GUI/payload24개/버전1.15.31 및 공식 APK188 포함 검증.
+- 실제 Android 기기 연결 없음. 기기의 채널 설정 화면/숨김 적용 및 에뮬레이터 실행은 미검증. 운영 설치·서비스 변경 없음.
+- 백업 .build/gps-notification-backup-20261013. 검증 .build/logs/release-1.15.31-verification.json.
+- output/OnTechChat-Server-Setup-v1.15.31-x64.exe / 39866880 bytes / SHA256 affbaa7fd82119f49e681f821acf3ac4e4cb4e292c9632f1eab9d159bb72a965.
+- output/OnTechChat-v1.8.8-arm64.apk / 28486666 bytes / SHA256 4dc33f4c3f62f43bb20c9ab4136382a16f9664518d83415941504deb27ccaca9.
+
 # 완료 — 2026-10-10 앱1.8.7(187) / 서버Setup1.15.30 — 로그인 상태 보존
 - 사용자: 친구/대화는 정상이나 상단 로그인 상태 불일치, 설정 진입 시 native 로그인 화면 복귀. 휴대전화 오류 로그는 미확보. 제보의 단일 원인을 실기기에서 확정하지는 않음.
 - 확인한 코드 결함: SecureState 읽기/복호화/키 접근 오류를 빈 LocalState로 반환하고 배경 FCM 저장이 해당 상태로 덮어쓸 수 있었음. 빈 상태 반환을 제거하고 처음 성공한 상태 캐시, 복제본 조회, 저장 성공 후 상태 교체로 변경. IO 접근 실패를 파일 없음으로 처리하거나 기존 키 접근 실패 시 새 키로 덮어쓰기 금지.
