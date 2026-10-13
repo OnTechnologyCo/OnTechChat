@@ -1,3 +1,10 @@
+# GitHub 인증 및 동기화 완료 — 2026-10-14
+- 원격 작업은 현재 실행 계정의 기본 GitHub CLI 프로필과 Windows keyring을 사용한다. GH_CONFIG_DIR로 다른 Windows 사용자의 인증 폴더를 지정하지 않는다.
+- 인증 값은 소스/문서/hosts.yml에 저장하지 않았다. 만료 여부는 GitHub 응답으로 확인하며 HTTP401만으로 만료라고 단정하지 않는다.
+- Git 작업은 저장된 GitHub CLI 인증을 credential helper로 사용한다. 전역 Git 설정을 바꾸지 않으려면 명령별로 -c credential.helper= -c 'credential.helper=!gh auth git-credential'를 지정한다.
+- GPS 알림 및 지도 개선 커밋 push와 PR #2 생성 완료: https://github.com/OnTechnologyCo/OnTechChat/pull/2 (main 병합 대기).
+- 이번 마무리는 인증 등록과 작업 기록 갱신이며 앱/서버 코드 변경은 없다. 2026-10-13 All/Core 빌드 검증 결과를 유지한다.
+
 # 완료 — 2026-10-13 앱1.8.9(189) / 서버Setup1.15.32 — 가입 없는 벡터 지도
 - 브이월드 API 키 방식은 사용자 요청에 따라 보류. 가입/API 키 없는 OpenFreeMap + MapLibre GL JS 5.24.0 벡터 지도 적용. OpenStreetMap 기반이며 국내 업체의 독자 데이터로 전환한 것은 아님.
 - 한국어 우선 이름, 선명한 확대, 흰 테두리 경로, 시작/마지막 지점, 축척, 전체 경로/마지막 위치 제공. 기존 Leaflet 지도 선택 및 WebGL 실패/타일 지연 fallback, 자동 조회 시 카메라/기본 지도 선택 유지.
@@ -8,7 +15,7 @@
 - APK: output/OnTechChat-v1.8.9-arm64.apk / 28486666 bytes / SHA256 45d157cf7ed718d4b89b926f2e3e8c5a1f3a71a1f6e9cdf44afe577166c10010.
 - Setup: output/OnTechChat-Server-Setup-v1.15.32-x64.exe / 41666560 bytes / SHA256 116950cdebf7142bf4022ba967c3babe4a68202c393918b384b21ae4d5dd36fa.
 - APK730 entries, 기존 인증서 SHA256 7fb644ceceefc9cfa7e6dbf775c1c21833bb62f79a792ef65cd2d82ddb2a99f1. Setup x64 GUI/26개 payload 검증, 포함 APK1.8.9(189) 해시 일치.
-- GitHub: origin/main 7df6ab4 확인. 기존 GPS 알림 수정 커밋6b78d15 위에서 작업. CLI 인증 재확인 HTTP401이므로 push/PR 미완료. 운영 서비스/개인 데이터/방화벽 변경 없음.
+- GitHub: 2026-10-14 실행 계정의 Windows 자격 증명 저장소(keyring)에 인증 등록. 새 프로세스에서 계정/API 인증 확인, GPS 알림6b78d15 및 지도a0ce184를 fix/keyless-gps-map-1.8.9에 push 완료. PR #2: https://github.com/OnTechnologyCo/OnTechChat/pull/2 (base main, 미병합). 운영 서비스/개인 데이터/방화벽 변경 없음.
 - 상세: docs/server/RELEASE-1.15.32.md 및 MAP-LICENSES.md.
 
 # 완료 — 2026-10-13 앱1.8.8(188) / 서버Setup1.15.31 — GPS 알림 숨기기
