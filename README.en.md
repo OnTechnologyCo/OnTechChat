@@ -7,17 +7,17 @@ Other agents must read **AGENTS.md → docs/WORK_STATUS.md**, in that order, bef
 
 | Purpose | Official path |
 |---|---|
-| Android 1.8.8 source | android/OnTechChat/ |
-| Windows server 1.15.31 source | server/ |
+| Android 1.8.9 source | android/OnTechChat/ |
+| Windows server 1.15.32 source | server/ |
 | Integrated installer / tray | installer/ / tray/ |
 | Only build entry point | build.ps1 |
-| Distribution APK | output/OnTechChat-v1.8.8-arm64.apk |
-| Server installer | output/OnTechChat-Server-Setup-v1.15.31-x64.exe |
+| Distribution APK | output/OnTechChat-v1.8.9-arm64.apk |
+| Server installer | output/OnTechChat-Server-Setup-v1.15.32-x64.exe |
 | Distribution file hashes | output/manifest.json / SHA256SUMS.txt |
 | Build intermediates and logs | .build/ |
 | Previous versions | archive/ (do not modify, build, or run) |
 
-Server Setup 1.15.31 includes the official Android 1.8.8 APK in its internal payload. On a new installation or update, it automatically publishes the APK to the server's `DataDir\apk-releases`. The Android app downloads the APK through the existing update API, verifies it, and then opens the operating system's installation screen.
+Server Setup 1.15.32 includes the official Android 1.8.9 APK in its internal payload. On a new installation or update, it automatically publishes the APK to the server's `DataDir\apk-releases`. The Android app downloads the APK through the existing update API, verifies it, and then opens the operating system's installation screen.
 
 Run these commands in PowerShell:
 

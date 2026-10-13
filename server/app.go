@@ -428,7 +428,7 @@ func (a *App) Handler() http.Handler {
 	web, _ := fs.Sub(webFiles, "web")
 	fileServer := http.FileServer(http.FS(web))
 	mux.Handle("GET /", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" && r.URL.Path != "/app.js" && r.URL.Path != "/style.css" && r.URL.Path != "/location-history.js" && r.URL.Path != "/location-map.js" && r.URL.Path != "/conversation-auto.js" && r.URL.Path != "/navigation.js" && r.URL.Path != "/composer.js" && r.URL.Path != "/composer.css" && r.URL.Path != "/vendor/leaflet.js" && r.URL.Path != "/vendor/leaflet.css" && r.URL.Path != "/conversation-help.js" && r.URL.Path != "/settings.js" && r.URL.Path != "/messenger.js" && r.URL.Path != "/messenger.css" {
+		if r.URL.Path != "/" && r.URL.Path != "/app.js" && r.URL.Path != "/style.css" && r.URL.Path != "/location-history.js" && r.URL.Path != "/location-map.js" && r.URL.Path != "/conversation-auto.js" && r.URL.Path != "/navigation.js" && r.URL.Path != "/composer.js" && r.URL.Path != "/composer.css" && r.URL.Path != "/vendor/leaflet.js" && r.URL.Path != "/vendor/leaflet.css" && r.URL.Path != "/vendor/maplibre-gl-csp.js" && r.URL.Path != "/vendor/maplibre-gl-csp-worker.js" && r.URL.Path != "/vendor/maplibre-gl.css" && r.URL.Path != "/vendor/openfreemap-liberty-ko.json" && r.URL.Path != "/vendor/openfreemap-sprite.json" && r.URL.Path != "/vendor/openfreemap-sprite.png" && r.URL.Path != "/vendor/openfreemap-sprite@2x.json" && r.URL.Path != "/vendor/openfreemap-sprite@2x.png" && r.URL.Path != "/conversation-help.js" && r.URL.Path != "/settings.js" && r.URL.Path != "/messenger.js" && r.URL.Path != "/messenger.css" {
 			http.NotFound(w, r)
 			return
 		}
@@ -445,7 +445,7 @@ func (a *App) Handler() http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' blob: data: https://tile.openstreetmap.org; frame-src blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'; connect-src 'self' https://tiles.openfreemap.org/planet https://tiles.openfreemap.org/planet/ https://tiles.openfreemap.org/fonts/; img-src 'self' blob: data: https://tile.openstreetmap.org; frame-src blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		if !a.validHost(r.Host) {
 			respond(w, 403, map[string]string{"code": "HOST_NOT_ALLOWED", "error": "허용되지 않은 서버 주소입니다. 서버 설정의 외부 HTTPS 주소와 앱 주소를 맞추고, 프록시가 원래 Host 헤더를 전달하는지 확인하세요."})

@@ -1,3 +1,16 @@
+# 완료 — 2026-10-13 앱1.8.9(189) / 서버Setup1.15.32 — 가입 없는 벡터 지도
+- 브이월드 API 키 방식은 사용자 요청에 따라 보류. 가입/API 키 없는 OpenFreeMap + MapLibre GL JS 5.24.0 벡터 지도 적용. OpenStreetMap 기반이며 국내 업체의 독자 데이터로 전환한 것은 아님.
+- 한국어 우선 이름, 선명한 확대, 흰 테두리 경로, 시작/마지막 지점, 축척, 전체 경로/마지막 위치 제공. 기존 Leaflet 지도 선택 및 WebGL 실패/타일 지연 fallback, 자동 조회 시 카메라/기본 지도 선택 유지.
+- 엔진/워커/스타일/아이콘 자체 포함. 외부는 고정 타일/폰트 GET만 허용. Android URL 정책과 CSP 확장, 외부 스크립트/unsafe-eval 허용 없음. 위치 공유·48시간 보관·15초 권한 재검증 정책 유지.
+- 공식 build.ps1 -Target All -Validation Core 성공: 2026-10-13 23:12:09 KST. Android 핵심159 + 알림22 + 서버121 = 총302 통과. 서버 선택 검사5 skip. 기존 Firebase obsolete 경고 유지.
+- 브라우저 실제 OpenFreeMap 타일/한글 지도/경로 렌더링 확인(서울 도심 모의 GPS, 렌더 피처1510, 지도 오류/CSP 위반0). 위치 선택·카메라 복원·기본 지도 선택·제공자 차단·WebGL 실패·dispose 및 기존 GPS 권한 회수/로그아웃/범위 검사 통과.
+- 검사 기록: .build/logs/map-ui-verification.json, .build/map-ui.jpg, .build/logs/release-1.15.32-verification.json. 실기기 GPU/WebView·현장 이동·운영 설치 검증은 미실행.
+- APK: output/OnTechChat-v1.8.9-arm64.apk / 28486666 bytes / SHA256 45d157cf7ed718d4b89b926f2e3e8c5a1f3a71a1f6e9cdf44afe577166c10010.
+- Setup: output/OnTechChat-Server-Setup-v1.15.32-x64.exe / 41666560 bytes / SHA256 116950cdebf7142bf4022ba967c3babe4a68202c393918b384b21ae4d5dd36fa.
+- APK730 entries, 기존 인증서 SHA256 7fb644ceceefc9cfa7e6dbf775c1c21833bb62f79a792ef65cd2d82ddb2a99f1. Setup x64 GUI/26개 payload 검증, 포함 APK1.8.9(189) 해시 일치.
+- GitHub: origin/main 7df6ab4 확인. 기존 GPS 알림 수정 커밋6b78d15 위에서 작업. CLI 인증 재확인 HTTP401이므로 push/PR 미완료. 운영 서비스/개인 데이터/방화벽 변경 없음.
+- 상세: docs/server/RELEASE-1.15.32.md 및 MAP-LICENSES.md.
+
 # 완료 — 2026-10-13 앱1.8.8(188) / 서버Setup1.15.31 — GPS 알림 숨기기
 - GPS 기록 알림·앱 메뉴·알림 설정에 GPS 알림 숨기기 추가. 이동 기록 설정 상단에 현재 표시 상태/안내를 제공하고 작은 화면에서 스크롤 지원.
 - 기존 GPS 전용 채널 ontech_location_history 유지. 사용자가 Android 설정에서 해당 알림만 한 번 끄면 됨. 알림을 숨기기 위해 위치 기록/공유를 중지하거나 채팅 알림을 끄지 않음. 시스템 실행 중인 앱 표시는 별도.
