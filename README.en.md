@@ -7,17 +7,19 @@ Other agents must read **AGENTS.md → docs/WORK_STATUS.md**, in that order, bef
 
 | Purpose | Official path |
 |---|---|
-| Android 1.8.9 source | android/OnTechChat/ |
-| Windows server 1.15.32 source | server/ |
+| Android 1.8.10 source | android/OnTechChat/ |
+| Windows server 1.15.34 source | server/ |
 | Integrated installer / tray | installer/ / tray/ |
 | Only build entry point | build.ps1 |
-| Distribution APK | output/OnTechChat-v1.8.9-arm64.apk |
-| Server installer | output/OnTechChat-Server-Setup-v1.15.32-x64.exe |
+| Distribution APK | output/OnTechChat-v1.8.10-arm64.apk |
+| Server installer | output/OnTechChat-Server-Setup-v1.15.34-x64.exe |
 | Distribution file hashes | output/manifest.json / SHA256SUMS.txt |
 | Build intermediates and logs | .build/ |
 | Previous versions | archive/ (do not modify, build, or run) |
 
-Server Setup 1.15.32 includes the official Android 1.8.9 APK in its internal payload. On a new installation or update, it automatically publishes the APK to the server's `DataDir\apk-releases`. The Android app downloads the APK through the existing update API, verifies it, and then opens the operating system's installation screen.
+GPS history now uses NAVER Dynamic Map by default. Update the server and Android app together. See the [release notes](docs/server/RELEASE-1.15.34.md) and docs/WORK_STATUS.md for changes and validation scope.
+
+Server Setup 1.15.34 includes the official Android 1.8.10 APK in its internal payload. On a new installation or update, it automatically publishes the APK to the server's `DataDir\apk-releases`. The Android app downloads the APK through the existing update API, verifies it, and then opens the operating system's installation screen.
 
 Run these commands in PowerShell:
 
@@ -44,3 +46,8 @@ See [docs/server/AI-CLI-AND-CHAT.md](docs/server/AI-CLI-AND-CHAT.md) for CLI ins
 **1.15.14 / Android 1.8.0 (180):** Added GPS recording at one-minute intervals, 48-hour retention, an encrypted local queue and server retries, date/time route maps, and separate controls for friend sharing, stopping, and deletion. See [docs/server/LOCATION-HISTORY.md](docs/server/LOCATION-HISTORY.md). Update both the server and the app.
 
 **1.15.15 / Android 1.8.1 (181):** Added AI file/image attachments, Codex image editing, a per-room automatic AI-help checkbox, mapped location routes (the most recent hour by default), automatic recording based on the existing location permission, and automatic app-update downloads. See [docs/server/RELEASE-1.15.15.md](docs/server/RELEASE-1.15.15.md).
+
+
+Configure automatic domain HTTPS in Server settings → External access. The server obtains and renews a public certificate on TCP 443 while preserving existing IP access. DNS-only mode and inbound public TCP 443 are required. [Setup guide](docs/server/RELEASE-1.15.34.md).
+
+Windows releases use Inno Setup exclusively (installer/OnTechChat.iss, build.config.json innoSetup). The previous standalone setup UI and publishing path were removed. The embedded runtime retains service/data migration, rollback and the single existing uninstall registration. Automatic domain HTTPS is configured in Server Settings after installation.

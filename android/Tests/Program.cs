@@ -45,6 +45,44 @@ foreach (var map in new[] {
     "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1114112-1114367.pbf",
     "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-255.pbf?token=secret"
 }) Check("reject vector resource " + map, () => { if (UrlPolicy.IsMapTile(map, "GET", false)) throw new Exception(); });
+foreach (var resource in new[] {
+    "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=public123&callback=onTechNaverMapReady&language=ko",
+    "https://oapi.map.naver.com/v3/auth?ncpKeyId=public123&url=https%3A%2F%2Fchat.example.com%2F&time=1790000000000&callback=__naver_maps_callback__0",
+    "https://map.pstatic.net/nrb/styles/basic.json?fmt=png",
+    "https://map.pstatic.net/nrb/styles/dterrain@2x.json?fmt=png",
+    "https://nrbe.pstatic.net/styles/satellite@2x.json?fmt=png",
+    "https://nrbe.pstatic.net/styles/basic@2x.json?fmt=png&callback=__naver_maps_callback__1",
+    "https://map.pstatic.net/nrb/styles/terrain.json?fmt=png&callback=__naver_maps_callback__12",
+    "https://ssl.pstatic.net/static/maps/mantle/2x/openhand.cur",
+    "https://nrbe.pstatic.net/styles/basic/1792111328/21/2097151/2097151@2x.png?mt=bg.ol.lko",
+    "https://map.pstatic.net/nrb/styles/basic/1792111328/0/0/0.png",
+    "https://ssl.pstatic.net/static/maps/mantle/2x/dot.gif"
+}) {
+    Check("NAVER map subresource " + resource, () => { if (!UrlPolicy.IsNaverMapResource(resource, "GET", false)) throw new Exception(); });
+    Check("NAVER blocks navigation and POST " + resource, () => { if (UrlPolicy.IsNaverMapResource(resource, "GET", true) || UrlPolicy.IsNaverMapResource(resource, "POST", false)) throw new Exception(); });
+}
+foreach (var resource in new[] {
+    "http://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=public123&callback=onTechNaverMapReady&language=ko",
+    "https://oapi.map.naver.com.evil.invalid/openapi/v3/maps.js?ncpKeyId=public123&callback=onTechNaverMapReady&language=ko",
+    "https://user@oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=public123&callback=onTechNaverMapReady&language=ko",
+    "https://oapi.map.naver.com:444/openapi/v3/maps.js?ncpKeyId=public123&callback=onTechNaverMapReady&language=ko",
+    "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=public123&callback=onTechNaverMapReady&language=ko#private",
+    "https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=old",
+    "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=public123&callback=onTechNaverMapReady&language=ko&token=secret",
+    "https://oapi.map.naver.com/arbitrary.js",
+    "https://map.pstatic.net/nrb/styles/basic.json?fmt=png&token=secret",
+    "https://nrbe.pstatic.net/styles/basic@2x.json?fmt=png&callback=arbitraryFunction",
+    "https://nrbe.pstatic.net/styles/basic@2x.json?fmt=png&callback=__naver_maps_callback__1&token=secret",
+    "https://nrbe.pstatic.net/styles/basic/1792111328/22/0/0.png",
+    "https://nrbe.pstatic.net/styles/basic/1792111328/1/2/0.png",
+    "https://nrbe.pstatic.net/styles/basic/1792111328/1/0/2.png",
+    "https://nrbe.pstatic.net/styles/basic/1792111328/1/0/0.png?token=secret",
+    "https://nrbe.pstatic.net/styles/arbitrary.js",
+    "https://ssl.pstatic.net/static/maps/mantle/2x/arbitrary.js",
+    "https://ssl.pstatic.net/static/other/image.png",
+    "https://map.naver.com/",
+    "https://example.com/nrb/styles/basic.json?fmt=png"
+}) Check("reject unsafe NAVER resource " + resource, () => { if (UrlPolicy.IsNaverMapResource(resource, "GET", false)) throw new Exception(); });
 Check("safe filename", () => { if (UrlPolicy.SafeFileName("../x\\bad:name.txt").IndexOfAny(['/', '\\', ':']) != -1) throw new Exception(); });
 Check("notification IDs", () => { if (!UrlPolicy.ValidID("room-12345678") || UrlPolicy.ValidID("../bad") || UrlPolicy.ValidID(null)) throw new Exception(); });
 Check("persistent session and legacy expiry", () => {

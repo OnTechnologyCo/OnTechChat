@@ -174,6 +174,8 @@ func serveGeneration(ctx context.Context, c Config, ready func()) (Config, bool,
 	}
 	defer ln.Close()
 	server := &http.Server{Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 90 * time.Second, IdleTimeout: 75 * time.Second, MaxHeaderBytes: 32 << 10, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12}}
+	stopHTTPS := a.startAutoHTTPS()
+	defer stopHTTPS()
 	a.startWorkers()
 	done := make(chan struct{})
 	shutdownDone := make(chan struct{})

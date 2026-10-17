@@ -1,5 +1,5 @@
 'use strict';
-// No API key or account. Rendering code/style are served by this chat server;
+// Fallback map: no API key or account. Rendering code/style are served by this chat server;
 // only public background tiles and fonts are fetched from OpenFreeMap.
 function historyMapResource(url){
  const u=new URL(url,location.href);
@@ -13,7 +13,7 @@ function historyMapResource(url){
  if(!ok)throw new Error('허용되지 않은 지도 리소스');
  return {url:u.href,credentials:'omit',referrerPolicy:'no-referrer'};
 }
-function historyMap(points,onSelect,camera){
+function historyOpenMap(points,onSelect,camera){
  if(!window.maplibregl||camera?.renderer==='raster')return historyRasterMap(points,onSelect,camera);
  const wrap=el('div','history-map-wrap'),canvas=el('div','history-vector-map'),note=el('p','dialog-note','선명한 지도 · 배경 지도를 불러오는 중…');
  const controls=el('div','history-controls');wrap.append(canvas,controls,note);

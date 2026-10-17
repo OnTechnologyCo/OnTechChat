@@ -1,4 +1,4 @@
-param([ValidateSet('All','Android','Emulator','Server','Tests')][string]$Target='All', [ValidateSet('Core','Full')][string]$Validation='Core')
+param([ValidateSet('All','Android','Emulator','Server','Tests')][string]$Target='All', [ValidateSet('Core','Full','HTTPSSetup')][string]$Validation='Core')
 $ErrorActionPreference='Stop'
 $root=$PSScriptRoot
 if($root -ne 'D:\OnMakeSrc\OnTechChat') { throw 'Use D:\OnMakeSrc\OnTechChat\build.ps1 only.' }
@@ -119,9 +119,16 @@ function Test-Android {
     }
 }
 function Test-Server {
-    if($Validation -eq 'Core') {
+    if($Validation -eq 'HTTPSSetup') {
         Set-Location "$root\server"
-        Native (Join-Path $root $config.go) @('test','./...','-v','-timeout','5m','-run','Test(PersistentSession|HTTPUserAdministrationAndSessionRevocation|Location|AllFriends|AI|Agent|Mail|IMAP|Discovery|SelectedAuthentication|InvalidRecipient|RoomDelete|RoomLeave|ChatClear|AuthInboxClear)') 'server-core-test.log'
+        Native (Join-Path $root $config.go) @('test','./...','-v','-run','TestAutoHTTPS') 'https-server-test.log'
+        Set-Location "$root\installer"
+        Native (Join-Path $root $config.go) @('test','./...','-v','-run','Test(AutoHTTPS|Inno|EmbeddedPayload|UnifiedRuntimeDispatch|ProgramReplacementRollback|ServiceRegistrationPreservesExistingAccount)') 'https-setup-test.log'
+    } elseif($Validation -eq 'Core') {
+        Set-Location "$root\server"
+        Native (Join-Path $root $config.go) @('test','./...','-v','-timeout','5m','-run','Test(AutoHTTPS|PersistentSession|HTTPUserAdministrationAndSessionRevocation|Location|AllFriends|AI|Agent|Mail|IMAP|Discovery|SelectedAuthentication|InvalidRecipient|RoomDelete|RoomLeave|ChatClear|AuthInboxClear)') 'server-core-test.log'
+        Set-Location "$root\installer"
+        Native (Join-Path $root $config.go) @('test','./...','-v','-run','TestAutoHTTPS') 'https-installer-core-test.log'
     } else {
         foreach($module in @('server','tray','installer')) {
             Set-Location "$root\$module"
@@ -154,9 +161,9 @@ function Build-Server {
     Copy-Item $zipPath "$root\installer\payload.zip" -Force
     Test-Server
     Set-Location "$root\installer"
-    Native (Join-Path $root $config.go) @('build','-trimpath','-ldflags=-s -w -H=windowsgui','-o',"$root\.build\OnTechChat-Server-Setup-x64.exe",'.') 'server-build.log'
+    Native (Join-Path $root $config.go) @('build','-trimpath','-ldflags=-s -w -H=windowsgui','-o',"$root\.build\OnTechChat.Runtime.exe",'.') 'server-build.log'
     Set-Location $root
-    $exe="$root\.build\OnTechChat-Server-Setup-x64.exe"
+    $exe="$root\.build\OnTechChat.Runtime.exe"
     $pe=[IO.File]::ReadAllBytes($exe)
     $header=[BitConverter]::ToInt32($pe,0x3c)
     if([BitConverter]::ToUInt16($pe,$header+4) -ne 0x8664 -or [BitConverter]::ToUInt16($pe,$header+24+68) -ne 2) {
@@ -164,7 +171,20 @@ function Build-Server {
     }
     Native $exe @('--verify-payload') 'server-payload-check.log'
     Native $exe @('--version') 'server-version-check.log'
-    Publish-Release $exe "OnTechChat-Server-Setup-v$serverVersion-x64.exe" 'OnTechChat-Server-Setup*.exe'
+    # Inno Setup is the sole distribution installer; the Go binary is internal.
+    $iscc=Join-Path $root $config.innoSetup
+    if(!(Test-Path $iscc)) { throw "Inno Setup compiler missing: $iscc" }
+    $releaseDir="$root\.build\inno"
+    New-Item -ItemType Directory -Force $releaseDir | Out-Null
+    Native $iscc @("/DAppVersion=$serverVersion","/DRuntimeSource=$exe","/DReleaseDir=$releaseDir","$root\installer\OnTechChat.iss") 'inno-setup-build.log'
+    $setup=Join-Path $releaseDir "OnTechChat-Server-Setup-v$serverVersion-x64.exe"
+    if(!(Test-Path $setup) -or (Get-Item $setup).Length -lt 1000000) { throw 'Inno Setup output is missing or incomplete.' }
+    $version=(Get-Item $setup).VersionInfo
+    if($version.ProductVersion.Trim() -ne $serverVersion -or $version.FileDescription.Trim() -ne 'OnTech Chat Server Inno Setup') { throw 'Inno Setup version metadata mismatch.' }
+    Publish-Release $setup "OnTechChat-Server-Setup-v$serverVersion-x64.exe" 'OnTechChat-Server-Setup*.exe'
+    $retired="$root\.build\OnTechChat-Server-Setup-x64.exe"
+    if(Test-Path $retired) { Remove-Item -LiteralPath $retired -Force }
+    Write-Output "INNO SETUP VERIFIED: $setup"
 }
 try {
     Set-Location $root
@@ -203,4 +223,3 @@ try {
     [pscustomobject]@{Status=$(if($success){'completed'}else{'failed'});Target=$Target;Started=$started;Finished=(Get-Date).ToString('o');PID=$PID} | ConvertTo-Json | Set-Content "$root\.build\task.json" -Encoding UTF8
     $lock.Dispose()
 }
-

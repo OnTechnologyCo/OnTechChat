@@ -33,6 +33,7 @@ func mailRecipients(c MailConfig) []string {
 func networkSettingsInfo(c Config) map[string]any {
 	u, e := url.Parse(c.PublicURL)
 	out := map[string]any{"public_url": c.PublicURL, "configured": c.PublicURL != "", "tested_from_internet": false, "mode": "local", "listener": c.Listen, "caddyfile": ""}
+	out["automatic_https_enabled"] = c.AutoHTTPS.Enabled
 	out["windows_firewall_ui"] = runtime.GOOS == "windows"
 	out["firewall_helper_uri"] = "ontechchat-admin://firewall"
 	out["diagnostic"] = describeNetworkConfiguration(c)

@@ -32,7 +32,7 @@ public static class UrlPolicy
     public static bool SameOrigin(Uri origin, Uri uri) => uri.Scheme == "https" && uri.UserInfo.Length == 0 &&
         string.Equals(origin.IdnHost, uri.IdnHost, StringComparison.OrdinalIgnoreCase) && origin.Port == uri.Port;
     // Only the fixed public background-map resources may leave the server origin.
-    // Chat cookies/tokens are never added to these requests; scripts stay local.
+    // Fallback rendering scripts stay local. NAVER has a separate, explicit policy below.
     public static bool IsMapTile(string? target, string? method, bool isMainFrame)
     {
         if (isMainFrame || method != "GET" || target is null || target.Contains('\\') || target.Any(char.IsControl) ||
@@ -48,6 +48,37 @@ public static class UrlPolicy
         if (!font.Success) return false;
         int first = int.Parse(font.Groups[1].Value), last = int.Parse(font.Groups[2].Value);
         return first % 256 == 0 && last == first + 255 && last <= 1114111;
+    }
+    // NAVER Dynamic Map: HTTPS GET subresources only, exact hosts and map paths.
+    // Never attach the chat token/cookies or permit navigation to these resources.
+    public static bool IsNaverMapResource(string? target, string? method, bool isMainFrame)
+    {
+        if (isMainFrame || method != "GET" || target is null || target.Contains('\\') || target.Any(char.IsControl) ||
+            !Uri.TryCreate(target, UriKind.Absolute, out var uri) || uri.Scheme != "https" ||
+            uri.Port != 443 || uri.UserInfo.Length != 0 || uri.Fragment.Length != 0) return false;
+        var path = uri.AbsolutePath;
+        if (uri.IdnHost == "oapi.map.naver.com")
+        {
+            if (path == "/openapi/v3/maps.js")
+                return Regex.IsMatch(uri.Query, @"^\?ncpKeyId=[a-zA-Z0-9]+&callback=onTechNaverMapReady&language=ko\z", RegexOptions.CultureInvariant);
+            if (path == "/v3/auth")
+                return Regex.IsMatch(uri.Query, @"^\?ncpKeyId=[a-zA-Z0-9]+&url=[^&]+&time=[0-9]+&callback=__naver_maps_callback__[0-9]+\z", RegexOptions.CultureInvariant);
+            return false;
+        }
+        if (uri.IdnHost == "ssl.pstatic.net")
+            return uri.Query.Length == 0 && Regex.IsMatch(path, @"^/static/maps/mantle/[12]x/[a-zA-Z0-9_/-]+\.(?:png|gif|svg|cur)\z", RegexOptions.CultureInvariant);
+        string prefix;
+        if (uri.IdnHost == "map.pstatic.net") prefix = "/nrb/styles/";
+        else if (uri.IdnHost == "nrbe.pstatic.net") prefix = "/styles/";
+        else return false;
+        if (!path.StartsWith(prefix, StringComparison.Ordinal)) return false;
+        path = path[prefix.Length..];
+        if (Regex.IsMatch(path, @"^(?:basic|terrain|satellite|dbasic|dterrain)(?:@2x)?\.json\z", RegexOptions.CultureInvariant))
+            return Regex.IsMatch(uri.Query, @"^\?fmt=png(?:&callback=__naver_maps_callback__[0-9]+)?\z", RegexOptions.CultureInvariant);
+        var tile = Regex.Match(path, @"^(?:basic|terrain|satellite|dbasic|dterrain)/[0-9]+/([0-9]{1,2})/([0-9]{1,7})/([0-9]{1,7})(?:@2x)?\.png\z", RegexOptions.CultureInvariant);
+        if (!tile.Success || (uri.Query.Length != 0 && !Regex.IsMatch(uri.Query, @"^\?mt=[a-z.]+\z", RegexOptions.CultureInvariant))) return false;
+        int z = int.Parse(tile.Groups[1].Value), x = int.Parse(tile.Groups[2].Value), y = int.Parse(tile.Groups[3].Value);
+        return z <= 21 && x < (1 << z) && y < (1 << z);
     }
     private static bool MapCoordinates(Match tile)
     {

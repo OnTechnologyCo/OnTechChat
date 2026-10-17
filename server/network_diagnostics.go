@@ -36,6 +36,10 @@ func describeNetworkConfiguration(c Config) NetworkDiagnostic {
 	if d.PublicPort == 0 {
 		d.Warnings = append(d.Warnings, "외부 HTTPS 주소가 아직 설정되지 않았습니다.")
 	}
+	if c.AutoHTTPS.Enabled {
+		d.Warnings = append(d.Warnings, "도메인 자동 HTTPS가 별도 TCP443을 사용합니다. 위 항목은 기존 수신기 정보이며 실제 인증서 상태는 자동 HTTPS 영역에서 확인하세요.")
+		return d
+	}
 	if d.Loopback {
 		d.Warnings = append(d.Warnings, "현재 서버 수신 범위는 이 PC 내부뿐입니다. 방화벽 허용만으로 공인 IP 직접 접속이 되지 않습니다.")
 	}

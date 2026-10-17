@@ -12,7 +12,14 @@ import (
 	"strings"
 )
 
-const version = "1.15.32"
+const version = "1.15.34"
+
+type AutoHTTPSConfig struct {
+	Enabled     bool   `json:"enabled"`
+	Domain      string `json:"domain"`
+	Email       string `json:"email"`
+	AcceptTerms bool   `json:"accept_terms"`
+}
 
 type Config struct {
 	SchemaVersion   int    `json:"schema_version"`
@@ -24,6 +31,7 @@ type Config struct {
 	DataDir              string              `json:"data_dir"`
 	TLSCert              string              `json:"tls_cert"`
 	TLSKey               string              `json:"tls_key"`
+	AutoHTTPS            AutoHTTPSConfig     `json:"auto_https,omitempty"`
 	MaxFileBytes         int64               `json:"max_file_bytes"`
 	StorageQuotaBytes    int64               `json:"storage_quota_bytes"`
 	SessionHours         int                 `json:"session_hours"`
@@ -121,6 +129,9 @@ func decodeConfiguration(raw []byte, path string) (Config, error) {
 	return c, c.validate()
 }
 func (c Config) validate() error {
+	if e := validateAutoHTTPS(c.AutoHTTPS, c.Listen); e != nil {
+		return e
+	}
 	if e := validateRemoteControl(c.RemoteControl); e != nil {
 		return e
 	}

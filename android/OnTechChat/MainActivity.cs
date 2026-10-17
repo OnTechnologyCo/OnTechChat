@@ -253,7 +253,9 @@ public sealed partial class MainActivity : Activity
         if (destroyed) return;
         ClearBody(); ServerOrigin = UrlPolicy.Origin(session.Origin); title.Text = "온테크 채팅 · " + session.Username;
         status.Text = "서버 연결됨 · 로그인 유지";
-        Web = new WebView(this); Web.Settings.UserAgentString += " OnTechChatAndroid/1.8.7";
+        Web = new WebView(this);
+        var appVersion = PackageManager!.GetPackageInfo(PackageName!, (PackageInfoFlags)0)!.VersionName ?? "0.0.0";
+        Web.Settings.UserAgentString += " OnTechChatAndroid/" + appVersion;
         Web.Settings.JavaScriptEnabled = true; Web.Settings.DomStorageEnabled = true;
         Web.Settings.AllowFileAccess = false; Web.Settings.AllowContentAccess = true;
         Web.Settings.MixedContentMode = MixedContentHandling.NeverAllow;

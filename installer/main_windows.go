@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -188,7 +187,7 @@ func install(p paths) (err error) {
 		if err == nil {
 			if backup != "" {
 				if e := removeTree(backup); e != nil {
-					message("업데이트는 완료했지만 이전 파일 정리가 필요합니다.\n"+e.Error(), 0x30)
+					fmt.Fprintln(os.Stderr, "업데이트는 완료했지만 이전 파일 정리가 필요합니다.\n"+e.Error())
 				}
 			}
 			return
@@ -459,6 +458,11 @@ func waitParent(pid int) error {
 func main() {
 	// Route runtime modes before any setup flag registrations or admin-elevation logic.
 	args := os.Args[1:]
+	for _, arg := range args {
+		if arg == "--install-worker" {
+			os.Exit(runInnoInstallWorker(args))
+		}
+	}
 	if runtimeServerMode(args) {
 		clean := []string{os.Args[0]}
 		for _, x := range args {
@@ -500,8 +504,8 @@ func main() {
 		return
 	}
 
-	installFlag := flag.Bool("install", false, "install")
 	firewall := flag.Bool("firewall", false, "open local Windows firewall settings with approval")
+	httpsFirewall := flag.Bool("https-firewall", false, "open automatic HTTPS TCP 443 firewall settings")
 	aiAccount := flag.Bool("ai-account", false, "open Windows service logon account settings")
 	codexLogin := flag.Bool("codex-login", false, "sign in to server-owned Codex home")
 	protocol := flag.String("protocol", "", "validated local firewall settings URI only")
@@ -521,11 +525,15 @@ func main() {
 	trayFlag := flag.Bool("tray", false, "start the current user tray without elevation")
 	flag.Parse()
 	if *protocol != "" {
-		if len(os.Args) != 3 || !validFirewallProtocol(*protocol) {
+		if len(os.Args) != 3 || (!validFirewallProtocol(*protocol) && !validHTTPSFirewallProtocol(*protocol)) {
 			message("지원하지 않는 로컬 관리 요청입니다.", 0x10)
 			return
 		}
-		*firewall = true
+		if validHTTPSFirewallProtocol(*protocol) {
+			*httpsFirewall = true
+		} else {
+			*firewall = true
+		}
 	}
 	if *trayFlag {
 		if err := startTrayWithoutElevation(); err != nil {
@@ -558,6 +566,9 @@ func main() {
 		if *firewall {
 			args = []string{"--firewall"}
 		}
+		if *httpsFirewall {
+			args = []string{"--https-firewall"}
+		}
 		if err := elevateSelf(args); err != nil {
 			message(err.Error(), 0x10)
 		}
@@ -580,10 +591,14 @@ func main() {
 			return
 		}
 	}
-	if *firewall {
+	if *firewall || *httpsFirewall {
 		p, e := installPaths()
 		if e == nil {
-			e = firewallAction(p, "ui")
+			mode := "ui"
+			if *httpsFirewall {
+				mode = "https-ui"
+			}
+			e = firewallAction(p, mode)
 		}
 		if e != nil {
 			message("방화벽 설정: "+e.Error(), 0x10)
@@ -713,30 +728,7 @@ func main() {
 	case *logs:
 		err = openNotepad(filepath.Join(p.data, "private", "service.log"))
 	default:
-		_ = installFlag
-		text := "다른 PC용 온테크 채팅 서버를 설치합니다.\n\n• 실행 파일 하나로 서버·트레이·관리 기능 통합\n• Windows 시작 시 자동(지연된 시작) 실행\n• 서버는 로그인 전 실행 / 트레이는 로그인 후 표시\n• 트레이 더블클릭으로 채팅, 우클릭으로 설정·서버 제어\n• 방화벽·포트 진단과 단일 TCP 허용 (별도 승인, 자동 개방 안 함)\n• 장애 종료 시 5초·15초·60초 재시작 시도\n• 바탕화면·시작 메뉴 바로가기 생성\n• 업데이트 시 실행 중인 서버·트레이 자동 종료 후 재시작\n• 최신 Android APK도 Setup에 포함되어 서버 APK 배포 폴더에 자동 등록\n• Android 앱의 업데이트 확인에서 서버로부터 다운로드·설치 가능\n• 제거 시 데이터까지 삭제 또는 보존 선택\n• 기존 설정이 있으면 덮어쓰지 않음\n• 설치 PC의 Codex 실행 엔진을 공용 폴더에 준비\n• 서버용 AI 로그인 1회 (Windows 계정 변경 불필요)\n\n프로그램: " + p.program + "\n데이터: " + p.data + "\n\n메일·FCM·외부 접속은 별도 설정입니다.\n코드 서명과 실제 Windows 재부팅 검증은 아직 없습니다.\n빌드 도구: " + runtime.Version() + "\n인터넷 공개 전 지원 중인 보안 패치로 빌드했는지 확인하세요.\n\n설치할까요?"
-		if message(text, 0x124) != 6 {
-			return
-		}
-		err = install(p)
-		if err == nil {
-			trayErr := launchTrayAsDesktopUser(p)
-			trayNote := "트레이가 실행되었습니다. 오른쪽 아래 아이콘을 더블클릭하면 채팅을 엽니다."
-			if trayErr != nil {
-				trayNote = "트레이 자동 표시는 완료하지 못했습니다. 시작 메뉴 → OnTech Chat Server → 트레이 실행을 누르거나 다시 로그인하세요."
-			}
-			commonExe, commonHome := serverapp.SharedCodexLocations(p.program, p.data)
-			aiNote := "\n\n공용 Codex가 없습니다. 이 PC에 Codex를 설치한 뒤 이 설치 파일을 다시 실행하세요."
-			if _, ce := os.Stat(commonExe); ce == nil {
-				aiNote = "\n\n공용 Codex 준비 완료. 서버용 AI 로그인은 트레이에서 진행할 수 있습니다."
-			}
-			message(trayNote+aiNote+"\n\n설치 및 서버 실행을 완료했습니다.\n\n같은 PC에서 http://127.0.0.1:8787 접속\n초기 계정: 시작 메뉴 → OnTech Chat Server → 초기 관리자 정보\n\n재부팅 후 시작 메뉴의 '서버 상태'로 확인하세요.\n브라우저를 닫아도 서버는 계속 실행됩니다.\n서버 PC를 끄거나 절전 상태로 두면 사용할 수 없습니다.", 0x40)
-			if _, ce := os.Stat(commonExe); ce == nil {
-				if _, ae := os.Stat(filepath.Join(commonHome, "auth.json")); os.IsNotExist(ae) {
-					err = sharedCodexLogin(p)
-				}
-			}
-		}
+		err = errors.New("설치 또는 업데이트는 OnTechChat Inno Setup 파일을 실행하세요.")
 	}
 	if err != nil {
 		message("작업이 완료되지 않았습니다.\n\n"+err.Error()+"\n\n오류가 표시된 항목을 확인하고 설치 파일로 다시 시도하세요.\n필요한 경우 이 화면을 공유하세요. 비밀번호 파일은 공유하지 마세요.", 0x10)

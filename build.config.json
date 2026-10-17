@@ -4,5 +4,6 @@
   "androidSdk": "C:\\Program Files (x86)\\Android\\android-sdk",
   "javaSdk": "C:\\Program Files\\Android\\openjdk\\jdk-21.0.8",
   "androidBuildTools": "36.0.0",
-  "go": "tools\\go\\bin\\go.exe"
+  "go": "tools\\go\\bin\\go.exe",
+  "innoSetup": "tools\\InnoSetup\\ISCC.exe"
 }

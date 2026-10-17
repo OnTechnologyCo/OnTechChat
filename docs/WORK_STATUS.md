@@ -1,3 +1,62 @@
+# 2026-10-18 01:44 KST — 도메인 NAVER 인증 성공
+- 사용자의 콘솔 확인 완료 후 재검사: https://chat.ontechdev.com/ NAVER 인증 HTTP200 result 확인.
+- 기존 https://175.119.187.91:49333/는 NAVER 인증401 유지. 앱의 서버 접속 주소를 도메인 HTTPS로 변경해야 하며 휴대전화 실제 지도 표시까지 확인한 것은 아님.
+- HomePC GitHub CLI는 OnTechnologyCo 계정으로 유효하게 로그인돼 있음. 이전 연결 앱403과 별개로 현재 CLI 인증을 사용해 소스/릴리스 업로드 진행.
+
+# 2026-10-18 01:45 KST — NAVER 인증 후속 확인
+- 실제 운영 https://chat.ontechdev.com/healthz가 공인 TLS 검증 포함 HTTP200 / 서버1.15.34로 응답. 기존 https://175.119.187.91:49333/healthz도200. 이전 운영 미설치/도메인 미연결 상태는 이제 변경됨.
+- 공개 Client ID r6i3znksyy로 NAVER /v3/auth 확인: https://chat.ontechdev.com:8787/는200 result, https://chat.ontechdev.com/와 https://175.119.187.91:49333/는401 Authentication Failed. 현 배포 location-naver.js는 올바른 Client ID와 ncpKeyId 사용.
+- 수정할 NAVER Web 서비스 URL: 포트 없는 https://chat.ontechdev.com 및 현재 앱의 IP 접속을 위한 https://175.119.187.91. 앱1.8.10 기본 주소는 여전히 IP:49333.
+- NAVER 콘솔은 로그인 화면. Cloud Browser 보안 로그인 요청은 declined로 종료되어 등록값 변경은 하지 못함. 자격증명 재요청/우회 없이 중단. 다음 작업은 사용자가 로그인 재개를 요청하거나 콘솔에서 URL 등록을 완료한 뒤 인증 응답 확인.
+
+# 완료 — 2026-10-18 서버1.15.34 자동 HTTPS / Inno Setup
+- 공식 경로 D:\OnMakeSrc\OnTechChat, build.ps1 -Target Server -Validation HTTPSSetup 최종 성공: 2026-10-18 01:23:16 KST. 프로젝트 잠금 정상 해제.
+- 사용자 요청대로 기존 자체 Setup 확인창과 Go EXE 직접 Setup 게시 경로를 제거. 유일한 배포 Setup 정의 installer/OnTechChat.iss, Inno Setup 6.7.3. 내부 서버·서비스 관리 실행 파일은 .build/OnTechChat.Runtime.exe로만 빌드하여 Inno에 포함.
+- Inno 설치 마법사가 내부 --install-worker를 호출하고 실제 종료 코드를 확인. 실패는 완료 처리하지 않음. 기존 경로·서비스 계정·데이터 보존·업데이트 복원·APK 게시·트레이·단일 제거 항목/데이터 삭제 선택 유지.
+- 공식 Inno 컴파일러 다운로드 Authenticode Valid, 발행자 Pyrsys B.V. 확인. 다운로드 SHA256 9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732. 컴파일러는 tools/InnoSetup, build.config.json에서 지정.
+- 자동 HTTPS: 최고관리자 서버 설정 → 외부 접속 → 도메인 HTTPS 자동 설정. 별도 TCP443 수신기, TLS-ALPN-01 발급·갱신, 기존 서버 키로 암호화한 인증서/ACME 캐시. 기존 IP 접속·수신 포트·TLS 설정 유지.
+- Cloudflare DNS 전용 A chat → 175.119.187.91, 외부 TCP443 → 실제 서버 TCP443 연결이 필요. 서버 PC localhost 설정의 전용 방화벽 버튼 제공. 공유기 포트 전달은 자동 변경하지 않음.
+- 인증서 확인은 실제 도메인 SNI와 공인 CA 검증을 사용한 로컬 TLS 확인이며 인터넷 접속 성공으로 표시하지 않음. 운영 서버 설치/인증서 발급/외부 도메인 접속은 미수행.
+- 최초 Server/Core 통과 후 Inno 변경은 핵심11개(HTTPS4 + 설치7)만 확인. settings.js 구문, 내부 x64 GUI/서버버전1.15.34/payload29개, Inno 스크립트 컴파일/최종 PE 버전 확인. 실제 UAC 설치·업데이트·제거·재부팅 시험은 미수행.
+- 최종 Setup: output/OnTechChat-Server-Setup-v1.15.34-x64.exe / 34210905 bytes / SHA256 83ef409466935616912beb0cbf653370d47b261418fa20c0abd7e2964fdcf301.
+- APK는 기존 output/OnTechChat-v1.8.10-arm64.apk (190) 유지. 28486666 bytes / SHA256 cf93b27506ce821f2849b150758e5c4f1bc0c6969cbffc335033b25b732d7b6e. 서명/package/version/정렬을 확인해 Setup에 포함.
+- 다운로드: https://humanitarian-turbo-saving-boat.trycloudflare.com/server (2026-10-18 01:23:48 KST 공개 GET200, 파일명·크기·전체 SHA256 일치 확인).
+- scripts/share.py 단일 임시 공유 실행: Python PID3564, cloudflared PID7500, MCP session4687ee02c8cc441b9b34f157995a20bf. PC/공유 프로세스 종료 시 링크도 종료. 최신 상태 .build/download.json.
+- 로그: .build/logs/inno-setup-build.log, https-server-test.log, https-setup-test.log, release-1.15.34-download-verification.json.
+- 편집 백업은 .build/https-edit-backups로 이동하여 소스/payload에 포함하지 않음. output에는 종류별 최신 APK/Setup 하나씩만 유지.
+- 실제 서버는 별도 PC 175.119.187.91. HomePC_AMD는 개발 PC이며 운영 Caddy/DNS/방화벽/서비스/데이터를 변경하지 않음.
+- GitHub 업로드 미완료: 연결 앱의 쓰기 요청403 기록 유지. 커밋/푸시/운영 배포 성공으로 보고하지 않음.
+- 다음 순서: 실제 서버에서 새 Inno Setup 설치 → 도메인 HTTPS 설정/외부443 연결 → 도메인 접속 → NAVER 등록 URL을 실제 앱 주소에 맞춰 적용.
+
+# 완료 — 2026-10-18 앱1.8.10(190) / 서버Setup1.15.33 — 네이버 지도
+- 공식 원본 D:\OnMakeSrc\OnTechChat에 적용하고 build.ps1 -Target All -Validation Core 최종 성공: 2026-10-18 00:31:39 KST. 빌드 종료, 프로젝트 잠금 정상 해제.
+- GPS 경로 기본 지도를 NAVER Dynamic Map으로 변경. 시작/마지막 지점, 경로 테두리, 정확도 원, 위치 선택, 카메라 복원, 대체 지도 및 기존 60초 기록/48시간 보관/15초 공유 권한 재검증 유지. 공개 Client ID만 사용하며 Secret은 사용하지 않음.
+- 실제 SDK 검사에서 콜백이 전역 객체 등록보다 먼저 실행되는 문제를 발견해 microtask 이후 준비 판정으로 수정. JSONP 스타일 메타데이터와 .cur 리소스의 Android 허용 정책 보완. CSP 외부 스크립트는 SDK/인증/고정 메타데이터 파일로 제한. style-src-attr만 inline을 허용하고 inline script/style 요소/eval/wildcard는 계속 차단. SDK 오류 수집 POST도 차단 유지.
+- Android 핵심201 + 알림22 + 서버 Core123 = 총346개 통과. 서버 opt-in5 skip. 서버 검사 안의 지도 생명주기 모의10개 포함(총합에 중복 가산하지 않음). 기존 Firebase obsolete 경고 유지.
+- 실제 Chrome 검사 통과: 등록 도메인 https://chat.ontechdev.com:8787 원점을 로컬 프로젝트 fixture로 구성하고 실제 NAVER SDK/인증/메타데이터/타일을 요청함. 서울 모의 GPS 경로, 한글 지도, 타일25응답/로드 이미지29/SVG21, 위치 선택·카메라 복원·대체 지도 선택·정리 확인. 지도 필수 리소스 CSP 위반 없음; SDK telemetry POST 차단 확인. 실제 운영 도메인의 DNS/TLS/서버 배포 검증과는 다름.
+- APK: output/OnTechChat-v1.8.10-arm64.apk / 28486666 bytes / SHA256 cf93b27506ce821f2849b150758e5c4f1bc0c6969cbffc335033b25b732d7b6e.
+- Setup: output/OnTechChat-Server-Setup-v1.15.33-x64.exe / 41677312 bytes / SHA256 15ef5c6fef6a9e10418a1ea333284c932e470d755ee54404903f439ddfe3162f.
+- APK730 entries, package com.ontechdev.chat, versionCode190, minSdk26, ARM64, 서명/16KiB 정렬 확인. 기존 인증서 SHA256 7fb644ceceefc9cfa7e6dbf775c1c21833bb62f79a792ef65cd2d82ddb2a99f1 유지.
+- Setup x64 GUI/버전1.15.33/내부 payload27개 확인. 포함 APK1.8.10(190)의 크기·SHA256·서명 정보가 공식 APK와 일치. 편집 백업은 .build/naver-edit-backups로 이동하여 배포물에서 제외.
+- 공식 scripts/share.py 단일 다운로드 실행. 공개 APK/Setup 실제 GET HTTP200, Content-Disposition 버전 파일명, 크기와 전체 SHA256 일치 확인.
+- APK: https://acting-conservative-bicycle-commissions.trycloudflare.com/apk
+- Setup: https://acting-conservative-bicycle-commissions.trycloudflare.com/server
+- 임시 주소는 다운로드 작업과 PC가 실행 중일 때 유효. 최신 상태는 .build/download.json. 재부팅 자동 실행이나 영구 다운로드 서비스는 추가하지 않음.
+- 검증 기록: .build/logs/release-1.15.33-verification.json, release-1.15.33-download-verification.json, naver-ui-verification.json, server-core-test.log 및 Android 빌드/서명 로그. 화면: .build/naver-map-ui.jpg.
+- HomePC 접근 설정은 사용자 승인에 따라 공식 프로젝트 루트만 추가했고 파일 도구 접근을 확인함. 원본 HEAD b1fcb5751697a0b17006935ad507a7bb7e50eb94에서 기존 변경 없음/잠금 사용 가능 확인 후 적용. 이전 전달 패치는 초안이며 현재 공식 원본이 최종 수정본임.
+- GitHub 원격 브랜치/커밋/PR 업로드는 수행하지 않음(아래 이전 연결 앱403 기록 참조).
+- 운영 서버 설치·서비스 재시작·DNS/Cloudflare/Caddy/방화벽·사용자 데이터 변경 없음. 에뮬레이터/실제 휴대전화 설치·GPS 이동 검증 미수행. IP로 접속하는 경우 그 IP 원점도 NAVER Web 서비스 URL에 등록해야 함.
+- 상세: docs/server/RELEASE-1.15.33.md. 아래 이전 패치 준비/접근 차단 기록은 해결 전 상태.
+
+## 이전 패치 준비 — 2026-10-17 네이버 지도 / 앱1.8.10(190) · 서버Setup1.15.33
+- 기준 main: c09bb1bb795edb675924f099ac70ee454d8fa24a. PR #2는 이 커밋에서 병합됨. 아래 10월14일 기록의 '병합 대기'는 당시 상태.
+- 변경안은 OnTechChat-NaverMap-1.15.33.patch로 전달. GitHub feat/naver-gps-map-1.8.10 브랜치 생성은 연결 앱의 403 Resource not accessible by integration 응답으로 거부되어 push/PR 생성되지 않음. 네이버 지도 기본 렌더러, Android 외부 리소스 제한, CSP, 이전 APK/연결 실패 대체 지도 및 회귀 검사 추가. GPS 공유·보관·15초 재검증 정책 유지.
+- Node.js 문법 및 메모리상 SDK 모의 검사 9개 통과. 공식 SDK/CDN URL 형식 조회 확인. Go/Android 공식 검사, APK/Setup 빌드·서명, 실제 브라우저/기기 지도 표시는 미검증.
+- 2026-10-18 KST 정정: 사용자 화면에서 등록 URL http://chat.ontechdev.com:8787을 확인하고 같은 키로 수동 인증 요청한 결과 HTTP 200/result 성공. 앞선 IP 원점 요청은 등록 URL과 달랐음. 키 정상 확인, 실제 브라우저/Android 지도 렌더링 검증은 미완료.
+- HomePC_AMD의 파일 허용 루트 제한 때문에 D:\OnMakeSrc\OnTechChat 접근이 거부되어 공식 build.ps1을 실행하지 못함. 허용 목록이나 빌드 경로/잠금을 우회하지 않음. 복제 작업 폴더/새 배포물은 만들지 않았음.
+- 신규 APK/Setup/SHA256 없음. 기존 output 1.8.9/1.15.32 및 운영 서버·DNS·Caddy·사용자 데이터는 변경하지 않음.
+- 상세·남은 빌드/검증: docs/server/RELEASE-1.15.33.md.
+
 # GitHub 인증 및 동기화 완료 — 2026-10-14
 - 원격 작업은 현재 실행 계정의 기본 GitHub CLI 프로필과 Windows keyring을 사용한다. GH_CONFIG_DIR로 다른 Windows 사용자의 인증 폴더를 지정하지 않는다.
 - 인증 값은 소스/문서/hosts.yml에 저장하지 않았다. 만료 여부는 GitHub 응답으로 확인하며 HTTP401만으로 만료라고 단정하지 않는다.

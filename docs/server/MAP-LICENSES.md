@@ -1,5 +1,7 @@
 # 지도 라이선스 및 변경 고지
 
+1.15.33 변경안의 기본 지도는 NAVER Cloud Dynamic Map입니다. 공식 호스팅 SDK를 실행 시 불러오며 SDK/지도 데이터를 이 저장소에 복제하지 않습니다. NAVER 로고와 지도 데이터 표시는 유지합니다. [공식 SDK 안내](https://navermaps.github.io/maps.js.ncp/docs/tutorial-2-Getting-Started.html). 아래 포함 구성요소는 연결 실패·이전 앱에서 사용하는 대체 지도에 계속 적용됩니다.
+
 MapLibre GL JS 5.24.0, OpenFreeMap Liberty/아이콘을 포함합니다. 지도 스타일은 한국어 우선 이름과 서버 내부 아이콘 주소로 수정하고 Natural Earth 배경을 제외했습니다. 원본 링크와 조건은 아래에 보존합니다.
 
 ## maplibre-LICENSE.txt

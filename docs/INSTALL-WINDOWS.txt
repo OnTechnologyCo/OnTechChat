@@ -1,9 +1,9 @@
-OnTechChat Server 1.15.27 (Windows x64)
+OnTechChat Server 1.15.34 (Windows x64)
 
 설치 / 업데이트
-1. output/OnTechChat-Server-Setup-v1.15.27-x64.exe를 설치 폴더 밖에서 실행합니다.
-2. 관리자 권한 요청을 승인합니다.
-3. Setup에는 공식 Android 1.8.4 APK가 포함됩니다.
+1. output/OnTechChat-Server-Setup-v1.15.34-x64.exe를 설치 폴더 밖에서 실행합니다.
+2. 관리자 권한 요청을 승인하고 Inno Setup 설치 마법사의 설치 버튼을 누릅니다.
+3. Setup에는 공식 Android 1.8.10 APK가 포함됩니다.
 4. 업데이트는 기존 서버와 트레이를 자동 종료하고 파일을 교체합니다.
 5. 포함된 APK는 서버 데이터의 private\apk-releases에 자동 게시됩니다.
 6. Android 앱은 서버의 업데이트 확인 API에서 APK를 다운로드하고 package/version/size/SHA256/signing certificate를 검증한 뒤 OS 설치 화면을 엽니다.
@@ -26,3 +26,7 @@ Windows 설정 > 앱 > OnTech Chat Server > 제거 또는 시작 메뉴 > 프로
 실제 운영 환경의 UAC 설치·업데이트·제거·재부팅 전체 흐름은 별도 확인이 필요합니다.
 
 1.15.14: 설치 PC의 Codex 실행 엔진을 공용 경로에 준비합니다. 설치 완료 후 서버용 Codex 로그인으로 AI 인증을 한 번 설정하세요. Windows 서비스 계정 변경이나 Windows 암호 입력은 필요 없습니다. 개인 Codex 인증은 복사하지 않으며 업데이트 후 서버 인증을 유지합니다. 상세 절차: docs/server/AI-CLI-AND-CHAT.md.
+
+도메인 HTTPS: 서버 설정 > 외부 접속 > 도메인 HTTPS 자동 설정.
+Cloudflare DNS 전용 A 레코드와 외부 TCP443 → 서버 TCP443 연결이 필요합니다.
+인증서 발급·갱신은 서버가 처리하며 기존 IP 접속은 보존합니다.
