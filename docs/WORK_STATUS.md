@@ -1,3 +1,13 @@
+# 완료 — GitHub v1.15.34 게시 (2026-10-18 KST)
+
+- 소스 변경 커밋: `6c3577edfa43eb42099835f7efa95f6598605124`.
+- PR #3 main 병합 완료: https://github.com/OnTechnologyCo/OnTechChat/pull/3
+- 병합 커밋: `c296a1e3a80817cb02db3940a59da5e56bec9f1e`.
+- 정식 릴리스: https://github.com/OnTechnologyCo/OnTechChat/releases/tag/v1.15.34
+- Inno Setup 서버 1.15.34, Android 1.8.10 ARM64 APK, SHA256SUMS.txt, manifest.json 업로드 완료. GitHub의 파일 크기 및 SHA-256이 로컬 배포 파일과 일치함.
+- 기존 GitHub CLI 인증으로 업로드 성공. 아래 과거 기록의 GitHub 업로드 제한은 해결됨.
+- 네이버 지도 인증은 https://chat.ontechdev.com 기준 성공. 실제 휴대폰 지도 화면 확인은 별도이며 IP 주소 인증 성공을 의미하지 않음.
+
 # 2026-10-18 01:44 KST — 도메인 NAVER 인증 성공
 - 사용자의 콘솔 확인 완료 후 재검사: https://chat.ontechdev.com/ NAVER 인증 HTTP200 result 확인.
 - 기존 https://175.119.187.91:49333/는 NAVER 인증401 유지. 앱의 서버 접속 주소를 도메인 HTTPS로 변경해야 하며 휴대전화 실제 지도 표시까지 확인한 것은 아님.
