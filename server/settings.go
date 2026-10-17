@@ -92,7 +92,7 @@ func (a *App) readSavedSettings() (Config, string, error) {
 func (a *App) settingsResult(c Config, revision string) map[string]any {
 	active, _ := configBytes(a.cfg)
 	saved, _ := configBytes(c)
-	return map[string]any{"settings": settingsEditable(c), "revision": revision, "pending_apply": string(active) != string(saved), "applying": a.applying, "config_path": c.configPath, "listen": a.cfg.Listen, "data_dir": a.cfg.DataDir, "has_mail_password": c.Mail.PasswordEncrypted != "", "has_fcm_key": c.FCM.ServiceAccountEncrypted != "", "migration_notice": c.MigrationNotice, "active_mail_enabled": a.cfg.Mail.Enabled, "active_fcm_enabled": a.cfg.FCM.Enabled, "version": version, "mail_status": a.mailStatusView(), "network": networkSettingsInfo(c), "active_network": networkSettingsInfo(a.cfg)}
+	return map[string]any{"auto_https": c.AutoHTTPS, "https_status": a.autoHTTPSStatus(), "settings": settingsEditable(c), "revision": revision, "pending_apply": string(active) != string(saved), "applying": a.applying, "config_path": c.configPath, "listen": a.cfg.Listen, "data_dir": a.cfg.DataDir, "has_mail_password": c.Mail.PasswordEncrypted != "", "has_fcm_key": c.FCM.ServiceAccountEncrypted != "", "migration_notice": c.MigrationNotice, "active_mail_enabled": a.cfg.Mail.Enabled, "active_fcm_enabled": a.cfg.FCM.Enabled, "version": version, "mail_status": a.mailStatusView(), "network": networkSettingsInfo(c), "active_network": networkSettingsInfo(a.cfg)}
 }
 func (a *App) getSettings(w http.ResponseWriter, r *http.Request, u User) {
 	if !isSuperadmin(u) {

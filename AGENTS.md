@@ -171,3 +171,9 @@
 - 서버 Session.Persistent와 암호화 영속 저장소를 유지한다. 기존 유효 세션만 이전하며 만료/회수/로그아웃 토큰을 되살리지 않는다.
 - 앱은 저장한 암호화 토큰으로 연결을 재시도하고 WebView 쿠키를 갱신한다. 서버의 SESSION_INVALID 인증 오류와 프록시/연결 오류를 구분한다.
 - 상세 버전/검증/미완료 범위는 docs/WORK_STATUS.md와 docs/server/RELEASE-1.15.27.md를 확인한다.
+
+## 2026-10-18 최신 사용자 지시 — HTTPS와 Inno Setup
+- 서버 설정에서 도메인 인증서 자동 발급·갱신을 제공한다. 기존 IP 접속/데이터/설정을 보존한다.
+- 배포용 Windows Setup은 Inno Setup으로만 만든다. 정의 installer/OnTechChat.iss, 컴파일러 build.config.json의 innoSetup, 빌드 진입점 build.ps1.
+- 기존 메시지 박스 설치 UI와 Go EXE 직접 Setup 게시 경로는 제거 상태를 유지한다. 내부 설치 작업자는 서비스·업데이트 복원·데이터 보존·기존 단일 제거 항목에 사용한다.
+- 사용자는 검증을 핵심만 요구했다. 이번 변경은 -Validation HTTPSSetup으로 HTTPS/설치 핵심만 검사하며 불필요한 전체 반복 검증을 하지 않는다.

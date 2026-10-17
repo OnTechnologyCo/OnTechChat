@@ -50,7 +50,7 @@ internal sealed class ChatWebClient(MainActivity owner) : WebViewClient
         var origin = owner.ServerOrigin;
         if (origin is null) return Denied();
         if (raw.StartsWith("blob:" + origin.GetLeftPart(UriPartial.Authority) + "/", StringComparison.Ordinal)) return null;
-        if (request is not null && UrlPolicy.IsMapTile(raw, request.Method, request.IsForMainFrame)) return null;
+        if (request is not null && (UrlPolicy.IsMapTile(raw, request.Method, request.IsForMainFrame) || UrlPolicy.IsNaverMapResource(raw, request.Method, request.IsForMainFrame))) return null;
         if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri) || !UrlPolicy.SameOrigin(origin, uri)) return Denied();
         if(request?.Method=="POST"&&System.Text.RegularExpressions.Regex.IsMatch(uri.AbsolutePath,@"^/api/rooms/[a-zA-Z0-9_-]{8,100}/read\z"))owner.RunOnUiThread(owner.QueueNotificationCheck);
         if (uri.AbsolutePath == "/api/login")

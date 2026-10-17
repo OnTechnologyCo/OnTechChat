@@ -22,6 +22,7 @@ var webFiles embed.FS
 
 type App struct {
 	cfg              Config
+	httpsState       managedHTTPSState
 	settingsMu       sync.Mutex
 	applying         bool
 	reload           chan Config
@@ -300,7 +301,7 @@ func (a *App) validHost(host string) bool {
 	case "127.0.0.1:" + port, "localhost:" + port, "[::1]:" + port:
 		return true
 	}
-	return a.cfg.PublicURL != "" && sameAuthority("https", host, originHost(a.cfg.PublicURL))
+	return (a.cfg.PublicURL != "" && sameAuthority("https", host, originHost(a.cfg.PublicURL))) || (a.cfg.AutoHTTPS.Enabled && sameAuthority("https", host, a.cfg.AutoHTTPS.Domain))
 }
 func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -409,6 +410,9 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /api/files/{id}", auth(a.download))
 	mux.HandleFunc("GET /api/events", auth(a.events))
 	mux.HandleFunc("GET /api/status", auth(a.status))
+	mux.HandleFunc("GET /api/settings/https", auth(a.getAutoHTTPS))
+	mux.HandleFunc("POST /api/settings/https", auth(a.saveAutoHTTPS))
+	mux.HandleFunc("POST /api/settings/https/check", auth(a.checkAutoHTTPS))
 	mux.HandleFunc("GET /api/settings", auth(a.getSettings))
 	mux.HandleFunc("POST /api/settings", auth(a.saveSettings))
 	mux.HandleFunc("POST /api/settings/import-ini", auth(a.importINISettings))
@@ -428,7 +432,7 @@ func (a *App) Handler() http.Handler {
 	web, _ := fs.Sub(webFiles, "web")
 	fileServer := http.FileServer(http.FS(web))
 	mux.Handle("GET /", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" && r.URL.Path != "/app.js" && r.URL.Path != "/style.css" && r.URL.Path != "/location-history.js" && r.URL.Path != "/location-map.js" && r.URL.Path != "/conversation-auto.js" && r.URL.Path != "/navigation.js" && r.URL.Path != "/composer.js" && r.URL.Path != "/composer.css" && r.URL.Path != "/vendor/leaflet.js" && r.URL.Path != "/vendor/leaflet.css" && r.URL.Path != "/vendor/maplibre-gl-csp.js" && r.URL.Path != "/vendor/maplibre-gl-csp-worker.js" && r.URL.Path != "/vendor/maplibre-gl.css" && r.URL.Path != "/vendor/openfreemap-liberty-ko.json" && r.URL.Path != "/vendor/openfreemap-sprite.json" && r.URL.Path != "/vendor/openfreemap-sprite.png" && r.URL.Path != "/vendor/openfreemap-sprite@2x.json" && r.URL.Path != "/vendor/openfreemap-sprite@2x.png" && r.URL.Path != "/conversation-help.js" && r.URL.Path != "/settings.js" && r.URL.Path != "/messenger.js" && r.URL.Path != "/messenger.css" {
+		if r.URL.Path != "/" && r.URL.Path != "/app.js" && r.URL.Path != "/style.css" && r.URL.Path != "/location-history.js" && r.URL.Path != "/location-map.js" && r.URL.Path != "/location-naver.js" && r.URL.Path != "/conversation-auto.js" && r.URL.Path != "/navigation.js" && r.URL.Path != "/composer.js" && r.URL.Path != "/composer.css" && r.URL.Path != "/vendor/leaflet.js" && r.URL.Path != "/vendor/leaflet.css" && r.URL.Path != "/vendor/maplibre-gl-csp.js" && r.URL.Path != "/vendor/maplibre-gl-csp-worker.js" && r.URL.Path != "/vendor/maplibre-gl.css" && r.URL.Path != "/vendor/openfreemap-liberty-ko.json" && r.URL.Path != "/vendor/openfreemap-sprite.json" && r.URL.Path != "/vendor/openfreemap-sprite.png" && r.URL.Path != "/vendor/openfreemap-sprite@2x.json" && r.URL.Path != "/vendor/openfreemap-sprite@2x.png" && r.URL.Path != "/conversation-help.js" && r.URL.Path != "/settings.js" && r.URL.Path != "/messenger.js" && r.URL.Path != "/messenger.css" {
 			http.NotFound(w, r)
 			return
 		}
@@ -443,9 +447,13 @@ func (a *App) Handler() http.Handler {
 		}()
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
+		if r.URL.Path == "/" {
+			// NAVER authentication receives the origin, never a cross-origin path/query.
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		}
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'; connect-src 'self' https://tiles.openfreemap.org/planet https://tiles.openfreemap.org/planet/ https://tiles.openfreemap.org/fonts/; img-src 'self' blob: data: https://tile.openstreetmap.org; frame-src blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' https://oapi.map.naver.com/openapi/v3/maps.js https://oapi.map.naver.com/v3/auth https://map.pstatic.net/nrb/styles/basic.json https://map.pstatic.net/nrb/styles/basic@2x.json https://map.pstatic.net/nrb/styles/terrain.json https://map.pstatic.net/nrb/styles/terrain@2x.json https://map.pstatic.net/nrb/styles/satellite.json https://map.pstatic.net/nrb/styles/satellite@2x.json https://map.pstatic.net/nrb/styles/dbasic.json https://map.pstatic.net/nrb/styles/dbasic@2x.json https://map.pstatic.net/nrb/styles/dterrain.json https://map.pstatic.net/nrb/styles/dterrain@2x.json https://nrbe.pstatic.net/styles/basic.json https://nrbe.pstatic.net/styles/basic@2x.json https://nrbe.pstatic.net/styles/terrain.json https://nrbe.pstatic.net/styles/terrain@2x.json https://nrbe.pstatic.net/styles/satellite.json https://nrbe.pstatic.net/styles/satellite@2x.json https://nrbe.pstatic.net/styles/dbasic.json https://nrbe.pstatic.net/styles/dbasic@2x.json https://nrbe.pstatic.net/styles/dterrain.json https://nrbe.pstatic.net/styles/dterrain@2x.json; style-src 'self'; style-src-attr 'unsafe-inline'; worker-src 'self'; connect-src 'self' https://tiles.openfreemap.org/planet https://tiles.openfreemap.org/planet/ https://tiles.openfreemap.org/fonts/ https://map.pstatic.net/nrb/styles/ https://nrbe.pstatic.net/styles/; img-src 'self' blob: data: https://tile.openstreetmap.org https://map.pstatic.net/nrb/styles/ https://nrbe.pstatic.net/styles/ https://ssl.pstatic.net/static/maps/mantle/; frame-src blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		if !a.validHost(r.Host) {
 			respond(w, 403, map[string]string{"code": "HOST_NOT_ALLOWED", "error": "허용되지 않은 서버 주소입니다. 서버 설정의 외부 HTTPS 주소와 앱 주소를 맞추고, 프록시가 원래 Host 헤더를 전달하는지 확인하세요."})

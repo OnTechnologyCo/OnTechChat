@@ -7,17 +7,19 @@
 
 | 용도 | 공식 경로 |
 |---|---|
-| Android 1.8.9 소스 | android/OnTechChat/ |
-| Windows 서버 1.15.32 소스 | server/ |
-| 통합 설치기 / 트레이 | installer/ / tray/ |
+| Android 1.8.10 소스 | android/OnTechChat/ |
+| Windows 서버 1.15.34 소스 | server/ |
+| Inno Setup / 내부 관리 실행 파일 / 트레이 | installer/OnTechChat.iss / installer/ / tray/ |
 | 유일한 빌드 진입점 | build.ps1 |
-| 배포 APK | output/OnTechChat-v1.8.9-arm64.apk |
-| 서버 설치 파일 | output/OnTechChat-Server-Setup-v1.15.32-x64.exe |
+| 배포 APK | output/OnTechChat-v1.8.10-arm64.apk |
+| 서버 설치 파일 | output/OnTechChat-Server-Setup-v1.15.34-x64.exe |
 | 배포 파일 해시 | output/manifest.json / SHA256SUMS.txt |
 | 빌드 중간 파일·로그 | .build/ |
 | 이전 버전 보관 | archive/ (수정·빌드·실행 금지) |
 
-Server Setup 1.15.32은 공식 Android 1.8.9 APK를 내부 payload에 포함하며, 신규 설치/업데이트 시 서버 `DataDir\apk-releases`에 자동 게시한다. Android 앱은 기존 업데이트 API에서 해당 APK를 다운로드해 검증 후 OS 설치 화면을 사용한다.
+GPS 이동 경로의 기본 지도를 NAVER Dynamic Map으로 변경했습니다. 서버와 Android 앱을 함께 업데이트하세요. 상세 변경과 검증 범위: [릴리스 안내](docs/server/RELEASE-1.15.34.md), docs/WORK_STATUS.md.
+
+Server Setup 1.15.34은 공식 Android 1.8.10 APK를 내부 payload에 포함하며, 신규 설치/업데이트 시 서버 `DataDir\apk-releases`에 자동 게시한다. Android 앱은 기존 업데이트 API에서 해당 APK를 다운로드해 검증 후 OS 설치 화면을 사용한다.
 
 PowerShell에서 실행:
 - 전체 검증·빌드: .\build.ps1 -Target All
@@ -43,3 +45,8 @@ PowerShell에서 실행:
 1.15.14 / Android1.8.0(180): GPS1분 간격 기록,48시간 보관, 암호화 로컬 큐·서버 재전송, 날짜/시간별 경로도, 별도 친구공유·중지·삭제를 추가했습니다. 사용법: docs/server/LOCATION-HISTORY.md. 서버와 앱 모두 업데이트하세요.
 
 1.15.15 / Android1.8.1(181): AI 파일/이미지 첨부·Codex 이미지 수정, 채팅방별 자동 AI 도움 체크, 지도 이동경로(기본최근1시간), 기존 위치 허용에 따른 자동기록, 자동 업데이트 다운로드를 추가했습니다. 상세: docs/server/RELEASE-1.15.15.md.
+
+
+서버 설정 → 외부 접속에서 도메인 자동 HTTPS를 설정할 수 있습니다. 무료 공인 인증서 발급·갱신과 별도443 수신을 지원하며 기존 IP 접속은 보존합니다. Cloudflare DNS 전용과 외부443 연결이 필요합니다. [설정 순서](docs/server/RELEASE-1.15.34.md).
+
+Windows Setup은 Inno Setup으로만 생성합니다. 기존 자체 Setup UI/게시 경로는 제거했으며 설치·업데이트·데이터 보존 처리는 내부 작업자로 유지합니다. 컴파일러: build.config.json의 innoSetup. 설치 후 서버 설정 → 외부 접속에서 자동 HTTPS를 설정합니다.

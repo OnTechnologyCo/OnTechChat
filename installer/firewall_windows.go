@@ -49,12 +49,35 @@ func installedFirewallPlan(p paths, removal bool) (firewallPlan, error) {
 	return makeFirewallPlan(raw, p.exe)
 }
 func firewallAction(p paths, mode string) error {
-	if mode != "ui" && mode != "remove" && mode != "inspect" {
+	if mode != "ui" && mode != "remove" && mode != "inspect" && mode != "https-ui" && mode != "https-remove" {
 		return errors.New("invalid firewall action")
 	}
-	plan, e := installedFirewallPlan(p, mode == "remove")
+	autoHTTPS := strings.HasPrefix(mode, "https-")
+	if mode == "remove" {
+		if e := firewallAction(p, "https-remove"); e != nil {
+			return e
+		}
+	}
+	removal := mode == "remove" || mode == "https-remove"
+	plan, e := installedFirewallPlan(p, removal)
 	if e != nil {
 		return e
+	}
+	if autoHTTPS {
+		if removal {
+			plan.RuleName, plan.RuleGroup = httpsFirewallRuleName, httpsFirewallRuleGroup
+			mode = "remove"
+		} else {
+			raw, readErr := os.ReadFile(p.config)
+			if readErr != nil {
+				return readErr
+			}
+			plan, e = makeHTTPSFirewallPlan(raw, p.exe)
+			if e != nil {
+				return e
+			}
+			mode = "ui"
+		}
 	}
 	b, e := json.Marshal(plan)
 	if e != nil {

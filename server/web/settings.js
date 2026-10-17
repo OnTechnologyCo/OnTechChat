@@ -174,13 +174,45 @@ async function showSettings(initialTab = 'general') {
  aiPanel.append(el('p','subtle','Codex와 Claude CLI는 공개 웹검색·웹페이지 확인을 지원합니다. 최신 정보는 검색 후 출처와 함께 답변합니다.'));
 
  const network = section('network', '외부 접속', '여러 사용자가 LTE·5G에서 접속할 공통 HTTPS 주소를 지정합니다. 사용자마다 별도 계정으로 로그인합니다.');
+
+ const automatic = details(network, '도메인 HTTPS 자동 설정'); automatic.open = true;
+ const ac = snapshot.auto_https || {};
+ input(automatic,'https-domain','도메인','text',ac.domain||'','예: chat.ontechdev.com · https://와 포트 없이 입력').placeholder='chat.ontechdev.com';
+ input(automatic,'https-email','인증서 연락 이메일 (선택)','email',ac.email||'');
+ check(automatic,'https-terms',"Let's Encrypt 약관에 동의하고 이 도메인의 인증서 자동 발급·갱신을 신청합니다.",!!ac.accept_terms);
+ const terms=el('a','','인증서 이용 약관');terms.href='https://letsencrypt.org/repository/';terms.target='_blank';terms.rel='noopener noreferrer';automatic.append(terms);
+ automatic.append(el('p','subtle','Cloudflare A 레코드는 서버 공인 IP, 프록시는 DNS 전용으로 설정하세요. 인증서 발급과 접속에는 외부 TCP 443 → 이 서버 TCP 443 연결이 필요합니다.'));
+ const httpsStatus=el('p','settings-session-note');httpsStatus.style.whiteSpace='pre-line';automatic.append(httpsStatus);
+ let httpsCurrent=snapshot.https_status||{};
+ function renderHTTPS(v){httpsCurrent=v;httpsStatus.textContent=(v.url?v.url+'\n':'')+(v.message||'설정 전')+(v.not_after?'\n인증서 만료: '+new Date(v.not_after).toLocaleString():'');}
+ renderHTTPS(httpsCurrent);
+ async function configureHTTPS(enabled){
+  busy(true);httpsApply.disabled=true;httpsOff.disabled=true;setError('');
+  try{
+   if(enabled&&!refs['https-terms'].checked)throw new Error('인증서 이용 약관에 동의해 주세요.');
+   if(!confirm(enabled?'도메인 HTTPS 설정만 저장하고 적용합니다. 기존 IP 접속은 유지됩니다. 다른 미저장 입력은 반영되지 않습니다. 진행할까요?':'도메인 자동 HTTPS 수신을 중지할까요? 기존 IP 접속과 저장된 인증서는 유지됩니다.'))return;
+   const result=await api('/settings/https','POST',{revision:snapshot.revision,enabled,domain:refs['https-domain'].value.trim().toLowerCase(),email:refs['https-email'].value.trim(),accept_terms:refs['https-terms'].checked});
+   banner.textContent='HTTPS 설정 적용 중…';await waitForSettingsApply(result.revision);await showSettings('network');
+  }catch(e){setError(e.message);}finally{busy(false);httpsApply.disabled=false;httpsOff.disabled=false;}
+ }
+ const httpsApply=action('자동 HTTPS 설정·적용',()=>configureHTTPS(true),'primary');
+ const httpsOff=action('자동 HTTPS 중지',()=>configureHTTPS(false),'secondary');httpsOff.hidden=!ac.enabled;
+ const httpsCheck=action('인증서 다시 확인',async()=>{httpsCheck.disabled=true;try{renderHTTPS(await api('/settings/https/check','POST',{}));}catch(e){setError(e.message);}finally{httpsCheck.disabled=false;}},'secondary');
+ httpsCheck.disabled=!httpsCurrent.enabled;
+ const httpsFirewall=action('서버 Windows 방화벽에 443 허용',()=>{location.href='ontechchat-admin://https-firewall';},'secondary');
+ httpsFirewall.disabled=!ac.enabled||!canOpenWindowsFirewallFromBrowser(location.hostname,snapshot.network?.windows_firewall_ui);
+ const httpsUse=action('도메인 접속 주소 복사',async()=>{try{if(httpsCurrent.state!=='certificate_ready')throw new Error('먼저 인증서 확인을 완료하세요.');if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(httpsCurrent.url);else{const t=document.createElement('textarea');t.value=httpsCurrent.url;modal.append(t);t.select();const ok=document.execCommand('copy');t.remove();if(!ok)throw new Error('표시된 도메인 주소를 직접 복사하세요.');}toast('도메인 주소를 복사했습니다.');}catch(e){setError(e.message);}},'secondary');
+ automatic.append(httpsApply,httpsFirewall,httpsCheck,httpsUse,httpsOff);
+ automatic.append(el('p','subtle','방화벽 버튼은 서버 PC의 트레이 → 서버 설정에서 사용할 수 있습니다. Windows 관리자 승인 후 443만 추가합니다. 공유기 포트 전달은 공유기에서 설정해야 합니다. 인증서 확인 후 휴대전화 LTE·5G로 도메인을 열어 보세요.'));
+ const httpsTimer=setInterval(async()=>{if(!modal.open||!httpsCurrent.enabled)return;try{renderHTTPS(await api('/settings/https'));}catch{}},5000);
+ modal.addEventListener('close',()=>clearInterval(httpsTimer),{once:true});
  input(network, 'public-url', '사용자에게 공유할 HTTPS 주소', 'url', s.public_url, '예: https://chat.example.com 또는 인증서가 준비된 https://공인IP:포트').placeholder = 'https://chat.example.com';
  const addressStatus = el('p', 'settings-network-status', s.public_url ? '주소가 저장되어 있습니다. 실제 LTE·5G 접속을 확인했다는 뜻은 아닙니다.' : '외부 주소 미설정 · 현재는 서버 PC에서만 접속합니다.'); network.append(addressStatus);
  const address = el('code', 'settings-share-address', s.public_url || '외부 주소를 입력하고 저장 후 적용하세요.'); network.append(address);
  const copyAddress = action('저장된 접속 주소 복사', async () => { try { if (!s.public_url) throw new Error('먼저 외부 HTTPS 주소를 저장하세요.'); if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(s.public_url); else { const t = document.createElement('textarea'); t.value = s.public_url; modal.append(t); t.select(); const ok = document.execCommand('copy'); t.remove(); if (!ok) throw new Error('표시된 주소를 직접 복사하세요.'); } toast('주소를 복사했습니다.'); } catch (e) { setError(e.message); } }, 'secondary'); network.append(copyAddress);
- network.append(el('p', 'settings-warning', '주소 입력만으로 공유기·방화벽·인증서가 자동 설정되지는 않습니다. 127.0.0.1은 외부 사용자용 주소가 아닙니다. HTTP로 비밀번호나 인증번호를 공개하지 마세요.'));
+ network.append(el('p', 'settings-warning', '공유 주소 입력만으로 HTTPS가 생성되지는 않습니다. 위 자동 HTTPS 설정에서 인증서를 준비하세요. 127.0.0.1은 외부 사용자용 주소가 아닙니다. HTTP로 비밀번호나 인증번호를 공개하지 마세요.'));
  const mode = snapshot.network?.mode || 'local';
- const networkGuide = details(network, '외부 연결 준비 · 도메인 / 공인 IP'); networkGuide.open = true;
+ const networkGuide = details(network, '기존 HTTPS 프록시를 사용하는 경우');
  networkGuide.append(el('p', 'subtle', '같은 PC의 HTTPS 프록시를 사용할 때는 서버 수신 주소 127.0.0.1:8787을 유지합니다. 프록시는 원래 Host를 전달하고 실시간 메시지 버퍼링을 끕니다.'));
  networkGuide.append(el('p', 'subtle', '공인 IP 직접 접속도 가능하지만 해당 IP에 유효한 인증서와 TLS 수신 설정이 필요합니다. 사설 IP·CGNAT·이중 공유기에서는 단순 포트 포워딩만으로 접속되지 않을 수 있습니다.'));
  networkGuide.append(el('p', 'subtle', '연결 준비 후 휴대전화 Wi-Fi를 끄고 공유 주소로 로그인·채팅·첨부파일을 확인하세요. 관리자 화면은 관리자 계정에만 표시됩니다.'));
