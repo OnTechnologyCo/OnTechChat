@@ -277,7 +277,7 @@ public sealed partial class MainActivity : Activity
     private void ShowMenu()
     {
         bool loggedIn = SecureState.Read().Session is { Active: true };
-        var items = loggedIn ? new[] { "새로고침", "서버 설정 화면", "알림 상태·권한", "알림 미리보기·소리", "앱 업데이트", "FCM 기기 등록 다시 시도", "연결 진단", "앱 실행 진단", "로그아웃·서버 변경", "GPS 이동 기록" }
+        var items = loggedIn ? new[] { "새로고침", "서버 설정 화면", "알림 상태·권한", "알림 미리보기·소리", "앱 업데이트", "FCM 기기 등록 다시 시도", "연결 진단", "앱 실행 진단", "로그아웃·서버 변경", "GPS 이동 기록", "GPS 알림 숨기기" }
                              : new[] { "저장된 로그인으로 다시 연결", "알림 상태·권한", "연결 진단", "앱 실행 진단", "로그아웃·서버 변경" };
         new AlertDialog.Builder(this)!.SetTitle("온테크 채팅")!.SetItems(items, (_, e) =>
         {
@@ -286,6 +286,7 @@ public sealed partial class MainActivity : Activity
                 case "새로고침": if (Web is null) Run(ResumeSessionAsync); else Web.Reload(); break;
                 case "내 위치 공유": ShowLocationHistorySettings(); break;
                 case "GPS 이동 기록": ShowLocationHistorySettings(); break;
+                case "GPS 알림 숨기기": OpenHistoryNotificationSettings(); break;
                 case "서버 설정 화면": if (ServerOrigin is not null) Web?.LoadUrl(new Uri(ServerOrigin, "/?settings=1").AbsoluteUri); break;
                 case "연결 진단": new AlertDialog.Builder(this)!.SetTitle("서버 연결 진단")!.SetMessage(lastDiagnostic.Length == 0 ? "저장된 연결 오류가 없습니다." : lastDiagnostic)!.SetPositiveButton("닫기", (_, _) => { })!.Show(); break;
                 case "앱 실행 진단": ShowStartupDiagnostics(); break;

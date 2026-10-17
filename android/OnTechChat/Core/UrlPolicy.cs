@@ -31,14 +31,26 @@ public static class UrlPolicy
     }
     public static bool SameOrigin(Uri origin, Uri uri) => uri.Scheme == "https" && uri.UserInfo.Length == 0 &&
         string.Equals(origin.IdnHost, uri.IdnHost, StringComparison.OrdinalIgnoreCase) && origin.Port == uri.Port;
-    // Only public map image subresources may leave the authenticated server origin.
+    // Only the fixed public background-map resources may leave the server origin.
+    // Chat cookies/tokens are never added to these requests; scripts stay local.
     public static bool IsMapTile(string? target, string? method, bool isMainFrame)
     {
         if (isMainFrame || method != "GET" || target is null || target.Contains('\\') || target.Any(char.IsControl) ||
             !Uri.TryCreate(target, UriKind.Absolute, out var uri) || uri.Scheme != "https" ||
-            uri.IdnHost != "tile.openstreetmap.org" || uri.Port != 443 || uri.UserInfo.Length != 0 ||
-            uri.Query.Length != 0 || uri.Fragment.Length != 0) return false;
-        var tile = Regex.Match(uri.AbsolutePath, @"^/([0-9]{1,2})/([0-9]{1,6})/([0-9]{1,6})\.png\z", RegexOptions.CultureInvariant);
+            uri.Port != 443 || uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0) return false;
+        if (uri.IdnHost == "tile.openstreetmap.org")
+            return MapCoordinates(Regex.Match(uri.AbsolutePath, @"^/([0-9]{1,2})/([0-9]{1,6})/([0-9]{1,6})\.png\z", RegexOptions.CultureInvariant));
+        if (uri.IdnHost != "tiles.openfreemap.org") return false;
+        if (uri.AbsolutePath == "/planet") return true;
+        var tile = Regex.Match(uri.AbsolutePath, @"^/planet/[0-9]{8}_[0-9]{6}_pt/([0-9]{1,2})/([0-9]{1,6})/([0-9]{1,6})\.pbf\z", RegexOptions.CultureInvariant);
+        if (tile.Success) return MapCoordinates(tile);
+        var font = Regex.Match(uri.AbsolutePath, @"^/fonts/Noto%20Sans%20(?:Regular|Italic|Bold)/([0-9]{1,7})-([0-9]{1,7})\.pbf\z", RegexOptions.CultureInvariant);
+        if (!font.Success) return false;
+        int first = int.Parse(font.Groups[1].Value), last = int.Parse(font.Groups[2].Value);
+        return first % 256 == 0 && last == first + 255 && last <= 1114111;
+    }
+    private static bool MapCoordinates(Match tile)
+    {
         if (!tile.Success) return false;
         int z = int.Parse(tile.Groups[1].Value), x = int.Parse(tile.Groups[2].Value), y = int.Parse(tile.Groups[3].Value);
         return z <= 19 && x < (1 << z) && y < (1 << z);

@@ -19,6 +19,32 @@ Check("public map tile subresource", () => { if (!UrlPolicy.IsMapTile("https://t
 Check("map tiles cannot navigate or post", () => { if (UrlPolicy.IsMapTile("https://tile.openstreetmap.org/1/0/0.png", "POST", false) || UrlPolicy.IsMapTile("https://tile.openstreetmap.org/1/0/0.png", "GET", true)) throw new Exception(); });
 foreach (var tile in new[] { "http://tile.openstreetmap.org/1/0/0.png", "https://tile.openstreetmap.org.evil.invalid/1/0/0.png", "https://tile.openstreetmap.org:444/1/0/0.png", "https://user@tile.openstreetmap.org/1/0/0.png", "https://tile.openstreetmap.org/1/0/0.png?token=private", "https://tile.openstreetmap.org/1/0/0.png#private", "https://tile.openstreetmap.org/20/0/0.png", "https://tile.openstreetmap.org/1/2/0.png", "https://tile.openstreetmap.org/1/0/2.png", "https://tile.openstreetmap.org/index.html" })
     Check("reject unsafe map resource " + tile, () => { if (UrlPolicy.IsMapTile(tile, "GET", false)) throw new Exception(); });
+foreach (var map in new[] {
+    "https://tiles.openfreemap.org/planet",
+    "https://tiles.openfreemap.org/planet/20261004_113936_pt/14/13972/6348.pbf",
+    "https://tiles.openfreemap.org/planet/20261004_113936_pt/0/0/0.pbf",
+    "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/44032-44287.pbf",
+    "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf",
+    "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Italic/1113856-1114111.pbf"
+}) {
+    Check("public vector map resource " + map, () => { if (!UrlPolicy.IsMapTile(map, "GET", false)) throw new Exception(); });
+    Check("vector map cannot navigate/post " + map, () => { if (UrlPolicy.IsMapTile(map, "GET", true) || UrlPolicy.IsMapTile(map, "POST", false)) throw new Exception(); });
+}
+foreach (var map in new[] {
+    "http://tiles.openfreemap.org/planet", "https://tiles.openfreemap.org.evil.invalid/planet",
+    "https://tiles.openfreemap.org:444/planet", "https://user@tiles.openfreemap.org/planet",
+    "https://tiles.openfreemap.org/planet?token=secret", "https://tiles.openfreemap.org/planet#secret",
+    "https://tiles.openfreemap.org/styles/liberty", "https://tiles.openfreemap.org/evil.js",
+    "https://tiles.openfreemap.org/planet/20261004_113936_pt/1/2/0.pbf",
+    "https://tiles.openfreemap.org/planet/20261004_113936_pt/1/0/2.pbf",
+    "https://tiles.openfreemap.org/planet/20261004_113936_pt/20/0/0.pbf",
+    "https://tiles.openfreemap.org/planet/20261004_113936_pt/0/0/0.png",
+    "https://tiles.openfreemap.org/fonts/Arbitrary/0-255.pbf",
+    "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1-256.pbf",
+    "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-256.pbf",
+    "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1114112-1114367.pbf",
+    "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-255.pbf?token=secret"
+}) Check("reject vector resource " + map, () => { if (UrlPolicy.IsMapTile(map, "GET", false)) throw new Exception(); });
 Check("safe filename", () => { if (UrlPolicy.SafeFileName("../x\\bad:name.txt").IndexOfAny(['/', '\\', ':']) != -1) throw new Exception(); });
 Check("notification IDs", () => { if (!UrlPolicy.ValidID("room-12345678") || UrlPolicy.ValidID("../bad") || UrlPolicy.ValidID(null)) throw new Exception(); });
 Check("persistent session and legacy expiry", () => {
