@@ -36,6 +36,7 @@ type App struct {
 	passwordSlots    chan struct{}
 	apkSlots         chan struct{}
 	stateMu          sync.Mutex
+	releaseUpdates   githubUpdateCache
 	mailState        string
 	mailChecked      int64
 	mailRunMu        sync.Mutex
@@ -403,6 +404,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /api/app-updates/android", auth(a.availableAPK))
 	mux.HandleFunc("GET /api/app-updates/android/{file}", auth(a.downloadAPK))
 	mux.HandleFunc("GET /api/app-updates/deployment", auth(a.apkDeployment))
+	mux.HandleFunc("GET /api/app-updates/github", auth(a.githubUpdates))
 	mux.HandleFunc("DELETE /api/messages/{id}", auth(a.deleteMessage))
 	mux.HandleFunc("DELETE /api/rooms/{room}/ai/messages", auth(a.clearAIConversation))
 	mux.HandleFunc("DELETE /api/rooms/{room}/messages", auth(a.clearChatConversation))

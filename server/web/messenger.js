@@ -252,7 +252,7 @@ function locationCard(m){
 setInterval(()=>{for(const box of document.querySelectorAll('[data-location-expires]'))if(+box.dataset.locationExpires<=Date.now()/1000)box.replaceChildren(el('span','','공유 위치의 보관 기간이 끝났습니다.'));},1000);
 
 $('app-update-button').addEventListener('click',()=>nativeFeature('app-update'));
-$('apk-deployment-button').addEventListener('click',async()=>{try{const info=await api('/app-updates/deployment');const b=dialog('APK 업데이트 배포');b.append(el('p','','개발 PC에서 APK와 배포 정보를 생성한 뒤 서버 PC의 아래 폴더에 게시합니다. APK만 복사하면 버전·서명을 안전하게 확인할 수 없으므로 latest.json을 함께 사용합니다.'),el('pre','deployment-path',info.folder),el('p','',info.available?'게시 버전: '+info.release.version_name+' ('+info.release.version_code+')':'아직 게시된 업데이트가 없습니다.'),el('p','',info.error||'새 파일 게시 후 앱이 버전을 확인합니다. 설치는 각 사용자의 승인 후 진행합니다.'));}catch(e){toast(e.message);}});
+$('apk-deployment-button').addEventListener('click',()=>showSettings('updates'));
 
 // 조회 상태와 좌표는 채팅 메시지 대신 독립 팝업에서만 표시합니다.
 async function askFriendLocation(user){

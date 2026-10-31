@@ -1,7 +1,7 @@
-OnTechChat Server 1.15.34 (Windows x64)
+OnTechChat Server 1.15.35 (Windows x64)
 
 설치 / 업데이트
-1. output/OnTechChat-Server-Setup-v1.15.34-x64.exe를 설치 폴더 밖에서 실행합니다.
+1. output/OnTechChat-Server-Setup-v1.15.35-x64.exe를 설치 폴더 밖에서 실행합니다.
 2. 관리자 권한 요청을 승인하고 Inno Setup 설치 마법사의 설치 버튼을 누릅니다.
 3. Setup에는 공식 Android 1.8.10 APK가 포함됩니다.
 4. 업데이트는 기존 서버와 트레이를 자동 종료하고 파일을 교체합니다.

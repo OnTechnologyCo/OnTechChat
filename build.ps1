@@ -1,4 +1,4 @@
-param([ValidateSet('All','Android','Emulator','Server','Tests')][string]$Target='All', [ValidateSet('Core','Full','HTTPSSetup')][string]$Validation='Core')
+param([ValidateSet('All','Android','Emulator','Server','Tests')][string]$Target='All', [ValidateSet('Core','Full','HTTPSSetup','MailUpdates')][string]$Validation='Core')
 $ErrorActionPreference='Stop'
 $root=$PSScriptRoot
 if($root -ne 'D:\OnMakeSrc\OnTechChat') { throw 'Use D:\OnMakeSrc\OnTechChat\build.ps1 only.' }
@@ -119,14 +119,19 @@ function Test-Android {
     }
 }
 function Test-Server {
-    if($Validation -eq 'HTTPSSetup') {
+    if($Validation -eq 'MailUpdates') {
+        Set-Location "$root\server"
+        Native (Join-Path $root $config.go) @('test','./...','-v','-run','Test(Mail|IMAP|Discovery|SelectedAuthentication|InvalidRecipient|GitHub|Location)') 'mail-updates-server-test.log'
+        Set-Location "$root\installer"
+        Native (Join-Path $root $config.go) @('test','./...','-v','-run','Test(Inno|EmbeddedPayload|UnifiedRuntimeDispatch|ProgramReplacementRollback|ServiceRegistrationPreservesExistingAccount)') 'mail-updates-installer-test.log'
+    } elseif($Validation -eq 'HTTPSSetup') {
         Set-Location "$root\server"
         Native (Join-Path $root $config.go) @('test','./...','-v','-run','TestAutoHTTPS') 'https-server-test.log'
         Set-Location "$root\installer"
         Native (Join-Path $root $config.go) @('test','./...','-v','-run','Test(AutoHTTPS|Inno|EmbeddedPayload|UnifiedRuntimeDispatch|ProgramReplacementRollback|ServiceRegistrationPreservesExistingAccount)') 'https-setup-test.log'
     } elseif($Validation -eq 'Core') {
         Set-Location "$root\server"
-        Native (Join-Path $root $config.go) @('test','./...','-v','-timeout','5m','-run','Test(AutoHTTPS|PersistentSession|HTTPUserAdministrationAndSessionRevocation|Location|AllFriends|AI|Agent|Mail|IMAP|Discovery|SelectedAuthentication|InvalidRecipient|RoomDelete|RoomLeave|ChatClear|AuthInboxClear)') 'server-core-test.log'
+        Native (Join-Path $root $config.go) @('test','./...','-v','-timeout','5m','-run','Test(GitHub|AutoHTTPS|PersistentSession|HTTPUserAdministrationAndSessionRevocation|Location|AllFriends|AI|Agent|Mail|IMAP|Discovery|SelectedAuthentication|InvalidRecipient|RoomDelete|RoomLeave|ChatClear|AuthInboxClear)') 'server-core-test.log'
         Set-Location "$root\installer"
         Native (Join-Path $root $config.go) @('test','./...','-v','-run','TestAutoHTTPS') 'https-installer-core-test.log'
     } else {
@@ -209,7 +214,11 @@ try {
         'Server' { Build-Server }
         'Tests' { Test-Android; Test-Server }
     }
-    $files=Get-ChildItem "$root\output" -File | Where-Object Extension -in '.apk','.exe'
+    if($Target -eq 'Android') { $null=Prepare-SetupAPKBundle }
+    if($Target -in @('All','Server','Android')) {
+        Publish-Atomic "$root\.build\setup-apk\latest.json" "$root\output\android-update.json"
+    }
+    $files=Get-ChildItem "$root\output" -File | Where-Object { $_.Extension -in '.apk','.exe' -or $_.Name -eq 'android-update.json' }
     $manifest=@($files | ForEach-Object {
         [pscustomobject]@{File=$_.Name;Bytes=$_.Length;SHA256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant();Modified=$_.LastWriteTime.ToString('o')}
     })

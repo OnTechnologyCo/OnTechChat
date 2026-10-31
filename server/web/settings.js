@@ -60,6 +60,22 @@ async function showSettings(initialTab = 'general') {
  general.append(action('사용자 관리 · 추가', async () => { closeSettings(); await showAdmin(); }, 'secondary'));
  general.append(el('p', 'settings-session-note', '로그인 비밀번호 자체 변경은 「계정」 메뉴에서 합니다. 설정 저장에는 비밀번호를 다시 묻지 않습니다.'));
 
+
+ const updatesPanel=section('updates','업데이트','GitHub 정식 릴리스에서 서버 설치 프로그램과 Android APK를 다운로드합니다.');
+ const updatesStatus=el('p','settings-session-note','현재 서버 '+snapshot.version+' · 최신 릴리스를 확인하세요.'),updatesFiles=el('div','settings-controls');
+ const updatesCheck=action('최신 릴리스 확인',async()=>{
+  updatesCheck.disabled=true;updatesStatus.textContent='GitHub 릴리스 확인 중…';updatesFiles.replaceChildren();
+  try{
+   const info=await api('/app-updates/github'),release=info.release;
+   if(!modal.isConnected)return;
+   updatesStatus.textContent='현재 서버 '+info.current_server+' · GitHub '+release.tag+(info.server_update_available?' · 서버 업데이트가 있습니다.':' · 현재 서버가 같거나 더 최신입니다.');
+   const addDownload=(asset,label)=>{if(!asset)return;const link=el('a','secondary',label+' · '+asset.version);link.href=asset.url;link.target='_blank';link.rel='noopener noreferrer';link.download=asset.name;updatesFiles.append(link);};
+   addDownload(release.server,'PC 설치 프로그램 다운로드');addDownload(release.android,'Android APK 다운로드');
+  }catch(e){updatesStatus.textContent=e.message||'GitHub 릴리스를 확인하지 못했습니다.';}
+  finally{updatesCheck.disabled=false;}
+ },'primary');
+ updatesCheck.id='github-update-check';updatesPanel.append(updatesStatus,updatesCheck,updatesFiles,el('p','subtle','서버를 설치한 PC에서 설치 프로그램을 실행하세요. 모바일 앱의 업데이트 확인은 GitHub APK를 다운로드하고 검증한 뒤 Android 설치 화면을 엽니다.'));
+
  const aiState=s.ai||{}, aiPanel=section('ai','AI 대화','모델과 추론 강도만 선택합니다. 작업공간·격리·동시성은 서버가 자동 관리합니다.');
  const aiTop=el('div','settings-grid');aiPanel.append(aiTop);check(aiTop,'ai-enabled','AI 대화 사용',aiState.enabled,'저장 후 적용하면 AI 친구에서 바로 사용할 수 있습니다.');
  const defaultModel=field(aiTop,'ai-default-model','기본 모델','select','AI 친구를 처음 열 때 사용할 모델입니다.');
@@ -136,7 +152,8 @@ async function showSettings(initialTab = 'general') {
  input(mailGrid,'mail-password','앱 비밀번호 · 새 값만 입력','password','',snapshot.has_mail_password?'저장되어 있음 · 비우면 기존 비밀번호 유지':'네이버 앱 비밀번호를 입력하세요.').maxLength=1024;
  const folderInput=input(mailGrid,'mail-folder','메일 폴더','text',s.mail.folder||'INBOX');
  const folderList=el('datalist');folderList.id='mail-folder-list';folderInput.setAttribute('list',folderList.id);mail.append(folderList);
- input(mailGrid,'mail-subject-filter','제목에 포함할 문장','text',s.mail.subject_filter??((s.mail.rules||[])[0]?.code_pattern||''),'본문이 아닌 제목만 비교합니다. 영어 대소문자와 연속 공백은 구분하지 않습니다.').maxLength=200;
+ const subjectFilters=area(mailGrid,'mail-subject-filter','제목에 포함할 문구 · 한 줄에 하나',s.mail.subject_filter??((s.mail.rules||[])[0]?.code_pattern||''),'최대 20개, 각 200자. 제목에 하나라도 포함되면 전달하며 여러 조건이 맞아도 한 번만 전달합니다. 빈 줄은 무시하며 영어 대소문자·연속 공백은 구분하지 않습니다. 쉼표는 문구의 일부입니다.');
+ subjectFilters.rows=4;subjectFilters.maxLength=8020;subjectFilters.placeholder='로그인 코드\n이메일 인증';
  const recipientDetails=details(mail,'여러 사용자에게 같은 메일 전달');recipientDetails.open=true;
  recipientDetails.append(el('p','subtle','선택한 사용자 각각의 개인 수신함으로 제목과 본문을 전달합니다.'));
  const enabledUsers=users.filter(u=>!u.disabled),selectedNames=s.mail.recipient_usernames??[s.mail.owner_username];
@@ -302,7 +319,7 @@ async function showSettings(initialTab = 'general') {
  }
  async function performMailCollection(){
   let request;
-  try{request=payload();if(!request.settings.mail.subject_filter)throw new Error('제목 필터 문장을 입력하세요.');if(!request.settings.mail.recipient_usernames.length)throw new Error('메일 수신 사용자를 한 명 이상 선택하세요.');}
+  try{request=payload();if(!request.settings.mail.subject_filter.replace(/[\s\u200b\ufeff]/g,''))throw new Error('제목 조건을 한 줄에 하나씩 입력하세요.');if(!request.settings.mail.recipient_usernames.length)throw new Error('메일 수신 사용자를 한 명 이상 선택하세요.');}
   catch(e){setError(e.message);return;}
   if(!confirm('화면에 입력한 제목 필터로 최근 메일을 다시 확인하고, 일치하는 제목과 본문을 선택한 사용자들의 개인 수신함으로 실제 전달합니다. 실행할까요?'))return;
   request.deliver=true;busy(true);setError('');const started=Date.now();

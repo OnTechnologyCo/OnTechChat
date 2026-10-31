@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const version = "1.15.34"
+const version = "1.15.35"
 
 type AutoHTTPSConfig struct {
 	Enabled     bool   `json:"enabled"`
@@ -185,12 +185,12 @@ func (c Config) validate() error {
 	if c.Mail.PollSeconds < 5 || c.Mail.PollSeconds > 3600 || c.Mail.MaxAgeMinutes < 1 || c.Mail.MaxAgeMinutes > 60 {
 		return errors.New("invalid mail timing")
 	}
+	if e := validateMailSubjectFilters(c.Mail, c.Mail.Enabled); e != nil {
+		return e
+	}
 	if c.Mail.Enabled {
 		if c.Mail.Host != "imap.naver.com:993" || c.Mail.Account == "" || c.Mail.Folder == "" {
 			return errors.New("invalid Naver mail configuration")
-		}
-		if mailSubjectFilter(c.Mail) == "" || len([]rune(mailSubjectFilter(c.Mail))) > 200 || strings.ContainsAny(mailSubjectFilter(c.Mail), "\r\n\x00") {
-			return errors.New("제목 필터 문장을 1~200자로 입력하세요.")
 		}
 		if len(mailRecipients(c.Mail)) == 0 {
 			return errors.New("메일을 받을 사용자를 한 명 이상 선택하세요.")

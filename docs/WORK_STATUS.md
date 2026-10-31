@@ -1,3 +1,35 @@
+# 완료 — 2026-10-31 메일 다중 제목 / GitHub 업데이트
+
+- 공식 루트: D:\OnMakeSrc\OnTechChat. 서버1.15.35 / Android1.8.11(191).
+- 메일 제목 조건: 한 줄당 하나, 최대20개/각200자, OR 포함 비교. 빈 줄·중복 조건 정리, 대소문자·연속 공백 무시. 기존 단일 조건 유지, 본문만 일치하는 메일 제외, 사용자별 중복 전달 방지 유지.
+- GitHub: 공개 OnTechnologyCo/OnTechChat 최신 정식 릴리스 사용. 서버 설정 → 업데이트에서 PC Inno Setup/ARM64 APK 다운로드 링크 제공.
+- 새 Android는 별도 공개 HTTP 클라이언트로 GitHub APK 직접 다운로드. 채팅 토큰·쿠키 미전달, 고정 저장소/HTTPS/다운로드 호스트 제한, manifest·APK SHA256/크기/패키지/버전/기존 서명 검증 및 Android 설치 승인 유지.
+- 공식 빌드가 output/android-update.json을 생성합니다. 앞으로 같은 GitHub 릴리스에 Setup/APK/android-update.json/manifest.json/SHA256SUMS.txt를 함께 게시해야 합니다. 새 APK가 있고 메타데이터가 없으면 오류로 안내합니다.
+- 기존 서버 APK 배포 API와 Setup 포함 APK는 이전 앱 호환용으로 유지합니다. 설정 화면의 APK 배포 폴더 메뉴는 GitHub 업데이트 메뉴로 변경했습니다.
+
+## 검증 및 배포 파일
+- build.ps1 -Target All -Validation Core 성공: 2026-10-31 15:07:48 KST. task.json completed, 빌드 잠금 정상 해제.
+- Android 핵심211/알림22 통과. 서버 Core132 통과/실계정 opt-in5 skip/실패0 (159.137초). 설치기 HTTPS 핵심 통과, Inno 컴파일/x64 GUI/내부 payload30개/실행버전1.15.35 검증.
+- 실제 headless Chrome UI15개 통과: 다중 줄 입력/이전 단일 조건/전송 payload/저장값 복원/PC Setup 및 APK 링크/신규 서버 버전 표시.
+- APK730항목, ARM64/package191/minSdk26/정렬 확인. 기존 서명 SHA256 7fb644ceceefc9cfa7e6dbf775c1c21833bb62f79a792ef65cd2d82ddb2a99f1 유지.
+- APK: output/OnTechChat-v1.8.11-arm64.apk / 28494858 bytes / SHA256 565ca02a065a6ce91f38dfe1b557ee7b5107154650ab185fcd3738d5df804bd6.
+- Setup: output/OnTechChat-Server-Setup-v1.15.35-x64.exe / 34226445 bytes / SHA256 5548bb71755efff748e16d38bea98034a2d74df6605065ddda8e2c07f22610fa.
+- android-update.json:526 bytes / SHA256 af9dcbe74628bcd5a047257a3b3c281aba60a9cef78c3e0a7e0446b1d74c23a4. APK191/서명/크기/SHA256과 일치.
+- 공식 scripts/share.py 공유를 통해 공개 GET200/파일명/크기/전체 SHA256 일치 확인(15:08 KST).
+- APK: https://conventions-documentary-memorabilia-federal.trycloudflare.com/apk
+- Setup: https://conventions-documentary-memorabilia-federal.trycloudflare.com/server
+- 공유는 개발 PC/프로세스 실행 중에만 유효. MCP session5cfe8c64bdad42708ea7ae2579f768c8, Python PID13284/cloudflared PID14184. 최신 주소 .build/download.json.
+
+## 환경 및 남은 범위
+- 최초 Core 경로 검사 실패는 SYSTEM의 C:\Windows\Temp가 테스트상 신뢰된 Windows 루트에 포함된 데 따른 fixture 환경 차이. 기존 .build/system-test-temp/SystemTemp/GOTMPDIR 사용 후 해당 검사와 전체Core 모두 통과. 제품 권한 코드는 변경하지 않음.
+- 최초 APK 빌드의 NuGet System32/SysWOW64 경로 불일치를 기존 개발 캐시의 프로세스 환경 참조로 해결. 기존 Android debug.keystore도 프로세스 환경으로 참조하여 서명을 유지함. 키 복사/새 키 생성/전역 Windows 환경 변경 없음.
+- 첫 실패 후 재빌드 기록을 성공으로 숨기지 않음. 최종 All/Core만 위 완료 결과로 사용.
+- GitHub 공개 최신 릴리스 v1.15.34의 실제 API/Setup/APK 자산 메타데이터를 확인했음. 새1.15.35 소스 커밋/푸시/릴리스 게시는 이번 요청에서 수행하지 않음. GitHub CLI OnTechnologyCo 인증과 공개 저장소 접근은 정상.
+- 운영 서버 설치·서비스 재시작·실제 메일 전송/휴대전화 설치는 수행하지 않음.
+- 주요 신규: server/github_updates.go 및 검사, server/mail_multifilter_test.go, Android Core/GitHubUpdates.cs 및 검사, docs/server/RELEASE-1.15.35.md.
+- 로그: .build/logs/server-core-test.log, Tests-test.log, NotificationPolicy.Tests-test.log, android-arm64-*.log, inno-setup-build.log, release-1.15.35-download-verification.json. UI: .build/mail35-dom.html.
+- 변경 원본 백업: .build/mail-multi-20261031-backup, .build/github-updates-20261031-backup. 제품 소스/설치 payload에는 포함하지 않음.
+
 # 완료 — GitHub v1.15.34 게시 (2026-10-18 KST)
 
 - 소스 변경 커밋: `6c3577edfa43eb42099835f7efa95f6598605124`.

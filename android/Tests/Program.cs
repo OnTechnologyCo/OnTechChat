@@ -337,6 +337,7 @@ using (var canceledVerification = new CancellationTokenSource())
     catch (OperationCanceledException) { Check("stored cookie cannot bypass activity cancellation", () => {}); }
 }
 
+await GitHubUpdateTests.Run(Check);
 Console.WriteLine($"TOTAL PASSED: {passed}");
 sealed class FakeHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {

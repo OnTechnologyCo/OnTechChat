@@ -18,7 +18,7 @@ import (
 //go:embed payload.zip
 var payload []byte
 
-const installerVersion = "1.15.34"
+const installerVersion = "1.15.35"
 const serviceName = "OnTechChatServer"
 const installID = "ontechdev.chatserver.windows.v1"
 
