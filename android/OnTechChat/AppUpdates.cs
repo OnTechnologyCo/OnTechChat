@@ -31,22 +31,20 @@ public sealed partial class MainActivity
   try{
    RequireSameSession(session);
    if(pendingInstall is not null){await OfferInstallAsync();return;}
-   using var api=new ChatApi(new Uri(session.Origin),session.Token);
-   using var deadline=CancellationTokenSource.CreateLinkedTokenSource(Lifetime.Token);deadline.CancelAfter(TimeSpan.FromSeconds(8));
-   var data=await api.JsonAsync("/api/app-updates/android",HttpMethod.Get,ct:deadline.Token);var r=UpdateRelease.Parse(data);var installed=InstalledPackage();
+   using var updates=new GitHubUpdates();var installed=InstalledPackage();
+   var r=await updates.LatestAsync(installed.VersionName??"0.0.0",Lifetime.Token);
    if(r is null||r.VersionCode<=VersionCodeOf(installed)){if(manual)Notice("설치 가능한 더 최신 APK가 없습니다.");return;}
    ValidateRelease(r,installed);RequireSameSession(session);
    var saved=SecureState.Read();
    if(!updateGate.ShouldOffer(r.VersionCode,VersionCodeOf(installed),manual,saved.UpdateDeferredAccount,saved.UpdateDeferredVersion))return;
    updateGate.Offered(r.VersionCode);
-   Notice($"새 버전 {r.VersionName}을 자동으로 다운로드합니다. 완료 후 Android 설치 화면이 열립니다.");
+   Notice($"GitHub에서 새 버전 {r.VersionName}을 다운로드합니다. 완료 후 Android 설치 화면이 열립니다.");
    var dir=System.IO.Path.Combine(CacheDir!.AbsolutePath,"app-updates");Directory.CreateDirectory(dir);
    foreach(var old in Directory.EnumerateFiles(dir,"*.apk"))try{File.Delete(old);}catch(IOException){}
-   var path=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".apk");Notice("업데이트 APK 다운로드 중…");await api.DownloadUpdateAsync(r,path,Lifetime.Token);
+   var path=System.IO.Path.Combine(dir,Guid.NewGuid().ToString("N")+".apk");Notice("업데이트 APK 다운로드 중…");await updates.DownloadAsync(r,path,Lifetime.Token);
    await TTask.Run(()=>VerifyArchive(path,r),Lifetime.Token);
    RequireSameSession(session);pendingInstall=(r,path,session);await OfferInstallAsync();
-  }catch(ApiException ex)when(ex.Status==HttpStatusCode.NotFound){if(manual)Notice("서버 1.5.0 이상에서 APK 배포를 지원합니다.");}
-  catch(Exception){pendingInstall=null;waitingInstallPermission=false;if(manual)throw;Notice("업데이트 확인을 건너뛰었습니다. 채팅은 계속 사용할 수 있습니다. 메뉴에서 다시 확인하세요.");}
+  }catch(Exception){pendingInstall=null;waitingInstallPermission=false;if(manual)throw;Notice("업데이트 확인을 건너뛰었습니다. 채팅은 계속 사용할 수 있습니다. 메뉴에서 다시 확인하세요.");}
   finally{updateGate.Finish();}
  }
 #pragma warning disable CS0618
@@ -63,7 +61,7 @@ public sealed partial class MainActivity
  private void VerifyArchive(string path,UpdateRelease r){
   ValidateRelease(r,InstalledPackage());using(var f=File.OpenRead(path))if(f.Length!=r.Size||Convert.ToHexString(SHA256.HashData(f)).ToLowerInvariant()!=r.SHA256)throw new IOException("APK 파일이 배포 정보와 다릅니다.");
   var p=PackageManager!.GetPackageArchiveInfo(path,OperatingSystem.IsAndroidVersionAtLeast(28)?PackageInfoFlags.SigningCertificates:PackageInfoFlags.Signatures)??throw new IOException("Android가 APK를 해석하지 못했습니다.");
-  if(p.PackageName!=PackageName||VersionCodeOf(p)!=r.VersionCode||PackageSigner(p)!=r.Signer||p.ApplicationInfo is null||p.ApplicationInfo.MinSdkVersion>(int)Build.VERSION.SdkInt)throw new IOException("APK 패키지·버전·서명·지원 Android 검사 실패");
+  if(p.PackageName!=PackageName||VersionCodeOf(p)!=r.VersionCode||p.VersionName!=r.VersionName||PackageSigner(p)!=r.Signer||p.ApplicationInfo is null||p.ApplicationInfo.MinSdkVersion>(int)Build.VERSION.SdkInt)throw new IOException("APK 패키지·버전·서명·지원 Android 검사 실패");
  }
 #pragma warning restore CS0618
  private async TTask OfferInstallAsync(){

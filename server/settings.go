@@ -125,6 +125,11 @@ func (a *App) candidateSettings(c Config, in EditableSettings) (Config, error) {
 	if c.Mail.SubjectFilter == "" && len(m.Rules) > 0 {
 		c.Mail.SubjectFilter = mailSubjectFilter(MailConfig{Preset: m.Preset, Rules: m.Rules})
 	}
+	c.Mail.Rules = nil
+	if e := validateMailSubjectFilters(c.Mail, c.Mail.Enabled); e != nil {
+		return c, bad(e.Error())
+	}
+	c.Mail.SubjectFilter = strings.Join(mailSubjectFilters(c.Mail), "\n")
 	c.Mail.RecipientUsernames = append([]string{}, m.RecipientUsernames...)
 	c.Mail.Username = strings.TrimSpace(m.Username)
 	if strings.TrimSpace(m.Account) != "" {
@@ -137,7 +142,6 @@ func (a *App) candidateSettings(c Config, in EditableSettings) (Config, error) {
 	c.Mail.MaxAgeMinutes = m.MaxAgeMinutes
 	c.Mail.RequireDMARC = false
 	c.Mail.TrustedAuthservIDs = nil
-	c.Mail.Rules = nil
 	// 사용자명/폴더 변경으로 예전 UID 이력이 재사용되지 않도록 안정적인 계정 식별자를 자동 파생합니다.
 	if c.Mail.Username != "" && !strings.EqualFold(strings.TrimSpace(c.Mail.Username), strings.TrimSpace(a.cfg.Mail.Username)) {
 		c.Mail.Account = "naver-" + digest(strings.ToLower(c.Mail.Username))[:16]

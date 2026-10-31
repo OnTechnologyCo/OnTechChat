@@ -7,19 +7,19 @@
 
 | 용도 | 공식 경로 |
 |---|---|
-| Android 1.8.10 소스 | android/OnTechChat/ |
-| Windows 서버 1.15.34 소스 | server/ |
+| Android 1.8.11 소스 | android/OnTechChat/ |
+| Windows 서버 1.15.35 소스 | server/ |
 | Inno Setup / 내부 관리 실행 파일 / 트레이 | installer/OnTechChat.iss / installer/ / tray/ |
 | 유일한 빌드 진입점 | build.ps1 |
-| 배포 APK | output/OnTechChat-v1.8.10-arm64.apk |
-| 서버 설치 파일 | output/OnTechChat-Server-Setup-v1.15.34-x64.exe |
+| 배포 APK | output/OnTechChat-v1.8.11-arm64.apk |
+| 서버 설치 파일 | output/OnTechChat-Server-Setup-v1.15.35-x64.exe |
 | 배포 파일 해시 | output/manifest.json / SHA256SUMS.txt |
 | 빌드 중간 파일·로그 | .build/ |
 | 이전 버전 보관 | archive/ (수정·빌드·실행 금지) |
 
-GPS 이동 경로의 기본 지도를 NAVER Dynamic Map으로 변경했습니다. 서버와 Android 앱을 함께 업데이트하세요. 상세 변경과 검증 범위: [릴리스 안내](docs/server/RELEASE-1.15.34.md), docs/WORK_STATUS.md.
+네이버 메일 제목 조건을 여러 줄로 등록할 수 있습니다. 하나라도 제목에 포함되면 내용을 한 번 전달합니다. 서버와 앱 업데이트는 GitHub 정식 릴리스 파일을 사용합니다. [사용법](docs/server/RELEASE-1.15.35.md), docs/WORK_STATUS.md.
 
-Server Setup 1.15.34은 공식 Android 1.8.10 APK를 내부 payload에 포함하며, 신규 설치/업데이트 시 서버 `DataDir\apk-releases`에 자동 게시한다. Android 앱은 기존 업데이트 API에서 해당 APK를 다운로드해 검증 후 OS 설치 화면을 사용한다.
+Server Setup 1.15.35은 공식 Android 1.8.11 APK를 내부 payload에 포함하며, 신규 설치/업데이트 시 서버 `DataDir\apk-releases`에 자동 게시한다. Android 앱은 기존 업데이트 API에서 해당 APK를 다운로드해 검증 후 OS 설치 화면을 사용한다.
 
 PowerShell에서 실행:
 - 전체 검증·빌드: .\build.ps1 -Target All

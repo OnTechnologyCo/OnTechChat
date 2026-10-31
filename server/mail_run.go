@@ -70,8 +70,8 @@ func (a *App) runMail(ctx context.Context, cfg MailConfig, manual bool, authoriz
 	stop := context.AfterFunc(a.ctx, cancel)
 	defer stop()
 	report.Stage = "settings"
-	if mailSubjectFilter(cfg) == "" {
-		return report, errors.New("제목 필터 문장을 입력하세요.")
+	if e := validateMailSubjectFilters(cfg, true); e != nil {
+		return report, e
 	}
 	if len(mailRecipients(cfg)) == 0 {
 		return report, errors.New("메일 수신 사용자를 한 명 이상 선택하세요.")
