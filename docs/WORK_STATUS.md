@@ -1,3 +1,16 @@
+# 완료 — GitHub v1.15.35 정식 릴리스 게시 (2026-10-31 15:19 KST)
+
+- 소스 커밋: 92e99310bb21ee96de038b8665c4363eb390b400.
+- PR #4 main 병합: https://github.com/OnTechnologyCo/OnTechChat/pull/4
+- 병합/릴리스 태그 커밋: 1095a0c3d4b39904fc27e1b7ccb6aa249c69e2c0. 병합 트리가 검증한 소스와 동일함을 확인.
+- 정식 최신 릴리스: https://github.com/OnTechnologyCo/OnTechChat/releases/tag/v1.15.35
+- PC Inno Setup1.15.35, Android1.8.11(191), android-update.json, manifest.json, SHA256SUMS.txt 총5개 업로드 및 공개 완료.
+- GitHub latest API가 v1.15.35를 반환. 태그의 소스 커밋 확인. 로그인/토큰 없이 모든 자산을 실제 GET하여 HTTP200/크기/전체SHA256이 로컬 원본과 일치함을 확인.
+- 서버 다운로드: https://github.com/OnTechnologyCo/OnTechChat/releases/download/v1.15.35/OnTechChat-Server-Setup-v1.15.35-x64.exe
+- APK 다운로드: https://github.com/OnTechnologyCo/OnTechChat/releases/download/v1.15.35/OnTechChat-v1.8.11-arm64.apk
+- GitHub 다운로드는 임시 터널/개발 PC 실행 상태에 의존하지 않음. 아래 임시 다운로드 기록은 이전 배포 방식.
+- 검증 기록: .build/logs/release-1.15.35-github-verification.json. 운영 서버/실제 휴대전화 설치는 수행하지 않음.
+
 # 완료 — 2026-10-31 메일 다중 제목 / GitHub 업데이트
 
 - 공식 루트: D:\OnMakeSrc\OnTechChat. 서버1.15.35 / Android1.8.11(191).
@@ -24,7 +37,7 @@
 - 최초 Core 경로 검사 실패는 SYSTEM의 C:\Windows\Temp가 테스트상 신뢰된 Windows 루트에 포함된 데 따른 fixture 환경 차이. 기존 .build/system-test-temp/SystemTemp/GOTMPDIR 사용 후 해당 검사와 전체Core 모두 통과. 제품 권한 코드는 변경하지 않음.
 - 최초 APK 빌드의 NuGet System32/SysWOW64 경로 불일치를 기존 개발 캐시의 프로세스 환경 참조로 해결. 기존 Android debug.keystore도 프로세스 환경으로 참조하여 서명을 유지함. 키 복사/새 키 생성/전역 Windows 환경 변경 없음.
 - 첫 실패 후 재빌드 기록을 성공으로 숨기지 않음. 최종 All/Core만 위 완료 결과로 사용.
-- GitHub 공개 최신 릴리스 v1.15.34의 실제 API/Setup/APK 자산 메타데이터를 확인했음. 새1.15.35 소스 커밋/푸시/릴리스 게시는 이번 요청에서 수행하지 않음. GitHub CLI OnTechnologyCo 인증과 공개 저장소 접근은 정상.
+- GitHub 공개 최신 릴리스 v1.15.34의 실제 API/Setup/APK 자산 메타데이터를 확인했음. 이후 사용자 요청으로 새1.15.35 소스 커밋/푸시/main 병합/릴리스 게시 완료(상단 최종 기록 참조). GitHub CLI OnTechnologyCo 인증과 공개 저장소 접근은 정상.
 - 운영 서버 설치·서비스 재시작·실제 메일 전송/휴대전화 설치는 수행하지 않음.
 - 주요 신규: server/github_updates.go 및 검사, server/mail_multifilter_test.go, Android Core/GitHubUpdates.cs 및 검사, docs/server/RELEASE-1.15.35.md.
 - 로그: .build/logs/server-core-test.log, Tests-test.log, NotificationPolicy.Tests-test.log, android-arm64-*.log, inno-setup-build.log, release-1.15.35-download-verification.json. UI: .build/mail35-dom.html.
